@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Download, Eye, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
 import api from '../../api/axios'
+import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge, { statusLabel } from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
@@ -34,14 +36,27 @@ const processStageLabel = {
   on_hold: 'On Hold'
 }
 
+const safeDate = (value, formatStr = 'yyyy-MM-dd') => {
+  if (!value) return ''
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '' : format(date, formatStr)
+}
+
+const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
+
 export default function Students() {
+  const [searchParams] = useSearchParams()
   const [students, setStudents] = useState([])
   const [placements, setPlacements] = useState([])
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingFull, setSavingFull] = useState(false)
   const [uploadingDocuments, setUploadingDocuments] = useState(false)
-  const [filters, setFilters] = useState({ search: '', status: 'all', ba: 'all' })
+  const [filters, setFilters] = useState(() => ({
+    search: searchParams.get('search') || '',
+    status: searchParams.get('status') || 'all',
+    ba: searchParams.get('ba') || 'all'
+  }))
   const [selected, setSelected] = useState(null)
 
   const load = async () => {
@@ -54,6 +69,22 @@ export default function Students() {
 
   useEffect(() => {
     load()
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => {
+      load().catch(() => {})
+    }
+
+    socket.on('placement_created', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('placement_paid', refresh)
+
+    return () => {
+      socket.off('placement_created', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('placement_paid', refresh)
+    }
   }, [])
 
   const placementByStudentId = useMemo(
@@ -154,28 +185,93 @@ export default function Students() {
   }
 
   const exportCsv = () => {
-    const rows = filtered.map((student) => [
-      student.candidateName,
-      student.mobileNumber,
-      student.appliedFor || '',
-      student.submittedBy?.name || '',
-      format(new Date(student.createdAt), 'yyyy-MM-dd'),
-      student.placement?.selectionStatus
-        ? selectionStatusLabel[student.placement.selectionStatus] || student.placement.selectionStatus
-        : statusLabel(student.status),
-      student.placement?.processStage
-        ? processStageLabel[student.placement.processStage] || student.placement.processStage
-        : ''
-    ])
-    const csv = [['Name', 'Mobile', 'Applied For', 'Submitted By', 'Date', 'Status', 'Next Process'], ...rows]
-      .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(','))
-      .join('\n')
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = 'student-references.csv'
-    link.click()
-    URL.revokeObjectURL(link.href)
+    try {
+      const headers = [
+        'Candidate Name',
+        'Mobile',
+        'WhatsApp',
+        'Email',
+        'Aadhaar',
+        'Applied For',
+        'Interested Department',
+        'Preferred Industry',
+        'Preferred Job Location',
+        'Education',
+        'Total Experience',
+        'Current Salary',
+        'Expected Salary',
+        'Notice Period',
+        'Current Job Location',
+        'Marriage Status',
+        'Submitted By',
+        'Submitted Date',
+        'Reference Status',
+        'Selection Status',
+        'Process Stage',
+        'Company',
+        'Job Profile',
+        'Offered Salary PM',
+        'Earning %',
+        'Earning Amount',
+        'Earning Status',
+        'Joining Date',
+        'Interview Date',
+        'Interview Mode',
+        'Admin Notes'
+      ]
+
+      const rows = filtered.map((student) => {
+        const placement = student.placement || {}
+        return [
+          student.candidateName,
+          student.mobileNumber,
+          student.whatsappNo,
+          student.emailId,
+          student.aadhaarNo,
+          student.appliedFor,
+          student.interestedDepartment,
+          student.preferredIndustry,
+          student.preferredJobLocation,
+          student.education,
+          student.totalExperience,
+          student.currentSalary,
+          student.expectedSalary,
+          student.noticePeriod,
+          student.currentJobLocation,
+          student.marriageStatus,
+          student.submittedBy?.name || 'BA',
+          safeDate(student.createdAt),
+          statusLabel(student.status),
+          placement.selectionStatus
+            ? selectionStatusLabel[placement.selectionStatus] || placement.selectionStatus
+            : '',
+          placement.processStage
+            ? processStageLabel[placement.processStage] || placement.processStage
+            : '',
+          placement.companyId?.companyName || '',
+          placement.jobProfile || '',
+          placement.offeredSalaryPM ?? '',
+          placement.earningPercent ?? '',
+          placement.earningAmount ?? '',
+          placement.earningStatus || '',
+          safeDate(placement.joiningDate),
+          safeDate(placement.interviewDate),
+          placement.interviewMode || '',
+          student.adminNotes || ''
+        ]
+      })
+
+      const csv = [headers, ...rows].map((row) => row.map(csvCell).join(',')).join('\n')
+      const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' })
+      const link = document.createElement('a')
+      link.href = URL.createObjectURL(blob)
+      link.download = `student-references-${safeDate(new Date()) || 'export'}.csv`
+      link.click()
+      URL.revokeObjectURL(link.href)
+      toast.success('Student export downloaded')
+    } catch (_error) {
+      toast.error('Could not export student data')
+    }
   }
 
   if (loading) return <Skeleton rows={9} />

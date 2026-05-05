@@ -4,6 +4,7 @@ import { Check, Pencil, Save, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../../api/axios'
 import Skeleton from '../../components/Skeleton'
+import socket from '../../socket'
 
 const selectionStatusLabel = {
   shortlisted: 'Shortlisted',
@@ -24,6 +25,8 @@ const processStageLabel = {
   on_hold: 'On Hold'
 }
 
+const interviewModes = ['Online', 'Offline', 'Telephonic', 'Hybrid']
+
 const processStageBySelectionStatus = {
   shortlisted: 'appointment_letter_pending',
   selected: 'selected',
@@ -43,6 +46,22 @@ const selectionStatusByProcessStage = {
   on_hold: 'on_hold'
 }
 
+const processStageFlow = [
+  'appointment_letter_pending',
+  'appointment_letter_shared',
+  'interview_scheduled',
+  'interview_completed',
+  'selected',
+  'joined'
+]
+
+const getNextProcessStage = (currentStage) => {
+  const currentIndex = processStageFlow.indexOf(currentStage)
+  if (currentIndex === -1) return processStageFlow[0]
+  if (currentIndex >= processStageFlow.length - 1) return null
+  return processStageFlow[currentIndex + 1]
+}
+
 const formatMoney = (amount) =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -55,6 +74,7 @@ export default function CommissionProcessPanel() {
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [editingPlacementId, setEditingPlacementId] = useState('')
+  const [advancingPlacementId, setAdvancingPlacementId] = useState('')
   const [editForm, setEditForm] = useState({
     offeredSalaryPM: '',
     salaryBasis: 1,
@@ -62,6 +82,10 @@ export default function CommissionProcessPanel() {
     processStage: 'appointment_letter_pending',
     selectionStatus: 'shortlisted',
     joiningDate: '',
+    appointmentLetterDate: '',
+    interviewDate: '',
+    interviewMode: '',
+    processNotes: '',
     adminNotes: ''
   })
   const [filters, setFilters] = useState({
@@ -84,6 +108,22 @@ export default function CommissionProcessPanel() {
       toast.error('Could not load process panel')
       setLoading(false)
     })
+  }, [])
+
+  useEffect(() => {
+    const refresh = () => {
+      loadData().catch(() => {})
+    }
+
+    socket.on('placement_created', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('placement_paid', refresh)
+
+    return () => {
+      socket.off('placement_created', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('placement_paid', refresh)
+    }
   }, [])
 
   const filteredPlacements = useMemo(() => {
@@ -122,6 +162,10 @@ export default function CommissionProcessPanel() {
       processStage: placement.processStage || processStageBySelectionStatus[placement.selectionStatus] || 'appointment_letter_pending',
       selectionStatus: placement.selectionStatus || 'shortlisted',
       joiningDate: placement.joiningDate ? format(new Date(placement.joiningDate), 'yyyy-MM-dd') : '',
+      appointmentLetterDate: placement.appointmentLetterDate ? format(new Date(placement.appointmentLetterDate), 'yyyy-MM-dd') : '',
+      interviewDate: placement.interviewDate ? format(new Date(placement.interviewDate), 'yyyy-MM-dd') : '',
+      interviewMode: placement.interviewMode || '',
+      processNotes: placement.processNotes || '',
       adminNotes: placement.adminNotes || ''
     })
   }
@@ -139,9 +183,13 @@ export default function CommissionProcessPanel() {
         processStage: editForm.processStage,
         selectionStatus: editForm.selectionStatus,
         joiningDate: editForm.joiningDate || undefined,
+        appointmentLetterDate: editForm.appointmentLetterDate || undefined,
+        interviewDate: editForm.interviewDate || undefined,
+        interviewMode: editForm.interviewMode || undefined,
+        processNotes: editForm.processNotes,
         adminNotes: editForm.adminNotes
       })
-      toast.success('Process and salary updated')
+      toast.success('Process details updated')
       setEditingPlacementId('')
       await loadData()
     } catch (error) {
@@ -149,7 +197,40 @@ export default function CommissionProcessPanel() {
     }
   }
 
+  const advanceToNextStage = async (placement) => {
+    const currentStage =
+      placement.processStage || processStageBySelectionStatus[placement.selectionStatus] || 'appointment_letter_pending'
+    const nextStage = getNextProcessStage(currentStage)
+
+    if (!nextStage) {
+      toast('This placement is already at the final stage')
+      return
+    }
+
+    setAdvancingPlacementId(placement._id)
+    try {
+      await api.put(`/placements/${placement._id}`, {
+        processStage: nextStage,
+        selectionStatus: selectionStatusByProcessStage[nextStage] || placement.selectionStatus
+      })
+      toast.success(`Moved to ${processStageLabel[nextStage]}`)
+      await loadData()
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not move to next process stage')
+    } finally {
+      setAdvancingPlacementId('')
+    }
+  }
+
   const markPaid = async (placement) => {
+    const studentName = placement.studentId?.candidateName || 'this student'
+    const amount = formatMoney(placement.earningAmount || 0)
+    const confirmed = window.confirm(
+      `Are you sure you want to mark advisor payment as paid for ${studentName} (${amount})?\n\nPress OK for Yes or Cancel for No.`
+    )
+
+    if (!confirmed) return
+
     try {
       await api.patch(`/placements/${placement._id}/pay`, {
         earningStatus: 'paid',
@@ -256,13 +337,19 @@ export default function CommissionProcessPanel() {
                 <th className="px-3 py-3">%</th>
                 <th className="px-3 py-3">Earning</th>
                 <th className="px-3 py-3">Joining</th>
+                <th className="px-3 py-3">Appt. Letter</th>
+                <th className="px-3 py-3">Interview</th>
+                <th className="px-3 py-3">Process Notes</th>
                 <th className="px-3 py-3">Payment</th>
-                <th className="px-3 py-3">Action</th>
+                <th className="sticky right-0 z-10 bg-slate-50 px-3 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredPlacements.map((placement) => {
                 const isEditing = editingPlacementId === placement._id
+                const currentProcessStage =
+                  placement.processStage || processStageBySelectionStatus[placement.selectionStatus] || 'appointment_letter_pending'
+                const nextProcessStage = getNextProcessStage(currentProcessStage)
                 const preview = Math.round(
                   Number(editForm.offeredSalaryPM || 0) * Number(editForm.salaryBasis || 1) * (Number(editForm.earningPercent || 0) / 100)
                 )
@@ -353,9 +440,48 @@ export default function CommissionProcessPanel() {
                           />
                         </td>
                         <td className="px-3 py-2">
-                          <PaymentBadge status={placement.earningStatus} />
+                          <input
+                            type="date"
+                            value={editForm.appointmentLetterDate}
+                            onChange={(event) => setEditForm((current) => ({ ...current, appointmentLetterDate: event.target.value }))}
+                            className="rounded border border-slate-300 px-2 py-1 text-sm"
+                          />
                         </td>
                         <td className="px-3 py-2">
+                          <div className="space-y-1">
+                            <input
+                              type="date"
+                              value={editForm.interviewDate}
+                              onChange={(event) => setEditForm((current) => ({ ...current, interviewDate: event.target.value }))}
+                              className="rounded border border-slate-300 px-2 py-1 text-sm"
+                            />
+                            <select
+                              value={editForm.interviewMode}
+                              onChange={(event) => setEditForm((current) => ({ ...current, interviewMode: event.target.value }))}
+                              className="rounded border border-slate-300 px-2 py-1 text-sm"
+                            >
+                              <option value="">Select mode</option>
+                              {interviewModes.map((mode) => (
+                                <option key={mode} value={mode}>
+                                  {mode}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <input
+                            type="text"
+                            value={editForm.processNotes}
+                            onChange={(event) => setEditForm((current) => ({ ...current, processNotes: event.target.value }))}
+                            placeholder="Add process note"
+                            className="w-44 rounded border border-slate-300 px-2 py-1 text-sm"
+                          />
+                        </td>
+                        <td className="px-3 py-2">
+                          <PaymentBadge status={placement.earningStatus} />
+                        </td>
+                        <td className="sticky right-0 bg-white px-3 py-2">
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
@@ -378,7 +504,7 @@ export default function CommissionProcessPanel() {
                       </>
                     ) : (
                       <>
-                        <td className="px-3 py-2 text-slate-700">{processStageLabel[placement.processStage] || '-'}</td>
+                        <td className="px-3 py-2 text-slate-700">{processStageLabel[currentProcessStage] || '-'}</td>
                         <td className="px-3 py-2">
                           <SelectionBadge status={placement.selectionStatus} />
                         </td>
@@ -389,11 +515,31 @@ export default function CommissionProcessPanel() {
                         <td className="px-3 py-2 text-slate-700">
                           {placement.joiningDate ? format(new Date(placement.joiningDate), 'dd MMM yyyy') : '-'}
                         </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          {placement.appointmentLetterDate ? format(new Date(placement.appointmentLetterDate), 'dd MMM yyyy') : '-'}
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          <div className="space-y-0.5">
+                            <p>{placement.interviewDate ? format(new Date(placement.interviewDate), 'dd MMM yyyy') : '-'}</p>
+                            <p className="text-xs text-slate-500">{placement.interviewMode || '-'}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">{placement.processNotes || '-'}</td>
                         <td className="px-3 py-2">
                           <PaymentBadge status={placement.earningStatus} />
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="sticky right-0 bg-white px-3 py-2">
                           <div className="flex flex-wrap items-center gap-2">
+                            {nextProcessStage && (
+                              <button
+                                type="button"
+                                onClick={() => advanceToNextStage(placement)}
+                                disabled={advancingPlacementId === placement._id}
+                                className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-indigo-300 bg-indigo-50 px-2 text-xs font-semibold text-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {advancingPlacementId === placement._id ? 'Updating...' : 'Next Stage'}
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => startEdit(placement)}
@@ -421,8 +567,8 @@ export default function CommissionProcessPanel() {
               })}
               {!filteredPlacements.length && (
                 <tr>
-                  <td colSpan="12" className="px-5 py-10 text-center text-slate-500">
-                    No placements found for selected filters.
+                  <td colSpan="15" className="px-5 py-10 text-center text-slate-500">
+                    No placements found. Create a placement from Reference Board first, then process updates will appear here.
                   </td>
                 </tr>
               )}

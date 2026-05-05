@@ -10,6 +10,7 @@ import AdminStudents from './pages/admin/Students'
 import AdminCompanies from './pages/admin/Companies'
 import AdminCommissionPanel from './pages/admin/CommissionPanel'
 import AdminCommissionProcessPanel from './pages/admin/CommissionProcessPanel'
+import AdminSettings from './pages/admin/Settings'
 import BADashboard from './pages/ba/Dashboard'
 import BAProfile from './pages/ba/Profile'
 import StudentForm from './pages/ba/StudentForm'
@@ -101,6 +102,16 @@ export default function App() {
           <ProtectedRoute roles={['superAdmin']}>
             <AppShell role="superAdmin">
               <AdminCompanies />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <ProtectedRoute roles={['superAdmin']}>
+            <AppShell role="superAdmin">
+              <AdminSettings />
             </AppShell>
           </ProtectedRoute>
         }

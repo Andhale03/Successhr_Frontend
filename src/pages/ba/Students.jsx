@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
+import { useSelector } from 'react-redux'
 import api from '../../api/axios'
+import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
@@ -41,6 +43,7 @@ const processStageLabel = {
 }
 
 export default function Students() {
+  const token = useSelector((state) => state.auth.token)
   const [students, setStudents] = useState([])
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
@@ -51,16 +54,40 @@ export default function Students() {
     earning: 'all'
   })
 
+  const loadData = async () => {
+    const [studentRes, placementRes] = await Promise.all([api.get('/students'), api.get('/placements/my')])
+    setStudents(studentRes.data)
+    setPlacements(placementRes.data)
+    setLoading(false)
+  }
+
   useEffect(() => {
-    const load = async () => {
-      const [studentRes, placementRes] = await Promise.all([api.get('/students'), api.get('/placements/my')])
-      setStudents(studentRes.data)
-      setPlacements(placementRes.data)
+    loadData().catch(() => {
       setLoading(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!token) return undefined
+    connectSocket(token)
+
+    const refresh = () => {
+      loadData().catch(() => {})
     }
 
-    load()
-  }, [])
+    socket.on('my_placement', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('earning_paid', refresh)
+    socket.on('commission_paid', refresh)
+
+    return () => {
+      socket.off('my_placement', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('earning_paid', refresh)
+      socket.off('commission_paid', refresh)
+      disconnectSocket()
+    }
+  }, [token])
 
   const placementByStudentId = useMemo(
     () =>

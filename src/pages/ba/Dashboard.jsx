@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertTriangle, Building2, BriefcaseBusiness, IndianRupee, Users } from 'lucide-react'
 import { format } from 'date-fns'
+import { useSelector } from 'react-redux'
 import api from '../../api/axios'
+import socket, { connectSocket, disconnectSocket } from '../../socket'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 
@@ -14,30 +16,55 @@ const formatMoney = (amount) =>
   }).format(Number(amount || 0))
 
 export default function Dashboard() {
+  const token = useSelector((state) => state.auth.token)
   const [profile, setProfile] = useState(null)
   const [students, setStudents] = useState([])
   const [companies, setCompanies] = useState([])
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const load = async () => {
-      const [profileRes, studentRes, companyRes, placementRes] = await Promise.all([
-        api.get('/ba/profile'),
-        api.get('/students'),
-        api.get('/companies'),
-        api.get('/placements/my')
-      ])
+  const loadData = async () => {
+    const [profileRes, studentRes, companyRes, placementRes] = await Promise.all([
+      api.get('/ba/profile'),
+      api.get('/students'),
+      api.get('/companies'),
+      api.get('/placements/my')
+    ])
 
-      setProfile(profileRes.data)
-      setStudents(studentRes.data)
-      setCompanies(companyRes.data)
-      setPlacements(placementRes.data)
+    setProfile(profileRes.data)
+    setStudents(studentRes.data)
+    setCompanies(companyRes.data)
+    setPlacements(placementRes.data)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    loadData().catch(() => {
       setLoading(false)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!token) return undefined
+    connectSocket(token)
+
+    const refresh = () => {
+      loadData().catch(() => {})
     }
 
-    load()
-  }, [])
+    socket.on('my_placement', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('earning_paid', refresh)
+    socket.on('commission_paid', refresh)
+
+    return () => {
+      socket.off('my_placement', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('earning_paid', refresh)
+      socket.off('commission_paid', refresh)
+      disconnectSocket()
+    }
+  }, [token])
 
   const stats = useMemo(() => {
     const totalStudentsSubmitted = students.length

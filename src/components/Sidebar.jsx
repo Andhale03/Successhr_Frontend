@@ -8,6 +8,7 @@ import {
   Menu,
   PanelsTopLeft,
   IndianRupee,
+  Settings,
   UserCircle,
   Users,
   X
@@ -24,7 +25,8 @@ const adminLinks = [
   { to: '/admin/students', label: 'Students', icon: UserCircle },
   { to: '/admin/companies', label: 'Companies', icon: Building2 },
   { to: '/admin/commission-process', label: 'Process Panel', icon: PanelsTopLeft },
-  { to: '/admin/commission', label: 'Commission', icon: IndianRupee }
+  { to: '/admin/commission', label: 'Commission', icon: IndianRupee },
+  { to: '/admin/settings', label: 'Admin Settings', icon: Settings }
 ]
 
 const baLinks = [

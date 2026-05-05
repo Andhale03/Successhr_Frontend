@@ -66,7 +66,7 @@ const selectionStatusByProcessStage = {
 const referenceLabel = (reference) => (reference.type === 'student' ? reference.candidateName : reference.companyName)
 
 const parseSalary = (value) => {
-  const amount = Number(value || 0)
+  const amount = Number(String(value ?? '').replace(/,/g, '') || 0)
   return Number.isFinite(amount) ? amount : 0
 }
 
@@ -85,6 +85,87 @@ const formatMoney = (amount) =>
     maximumFractionDigits: 0
   }).format(Number(amount || 0))
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
+
+const buildReferenceSearchText = (reference) => {
+  const commonFields = [
+    reference.type,
+    reference.status,
+    reference.adminNotes,
+    reference.submittedBy?.name,
+    reference.submittedBy?.email
+  ]
+
+  if (reference.type === 'student') {
+    const studentFields = [
+      reference.candidateName,
+      reference.mobileNumber,
+      reference.aadhaarNo,
+      reference.whatsappNo,
+      reference.emailId,
+      reference.appliedFor,
+      reference.interestedDepartment,
+      reference.preferredIndustry,
+      reference.preferredJobLocation,
+      reference.education,
+      reference.currentJobLocation,
+      reference.careerSummary,
+      reference.reasonForJobChange
+    ]
+    return [...commonFields, ...studentFields]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+  }
+
+  const job = reference.jobRequirements || {}
+  const about = reference.aboutCompany || {}
+  const companyFields = [
+    reference.companyName,
+    reference.companyAddress,
+    reference.contactPersonName,
+    reference.contactPersonDesignation,
+    reference.mobileNo,
+    reference.emailId,
+    job.jobProfile,
+    job.education,
+    job.experience,
+    job.requiredKeySkills?.join(' '),
+    job.rolesAndResponsibility,
+    job.salaryRange,
+    job.gender,
+    job.numberOfVacancy,
+    job.jobTime,
+    job.shift,
+    job.jobLocation,
+    job.ageCriteria,
+    job.castCriteria,
+    job.marriageCriteria,
+    job.facilities?.join(' '),
+    about.manpower,
+    about.turnover,
+    about.plant,
+    about.interviewMode,
+    about.weeklyOff?.join(' ')
+  ]
+
+  return [...commonFields, ...companyFields]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+}
+
+const buildReferenceSearchDigits = (reference) => {
+  if (reference.type === 'student') {
+    return [reference.mobileNumber, reference.aadhaarNo, reference.whatsappNo]
+      .map((value) => digitsOnly(value))
+      .filter(Boolean)
+      .join(' ')
+  }
+
+  return digitsOnly(reference.mobileNo)
+}
+
 export default function ReferenceBoard() {
   const [students, setStudents] = useState([])
   const [companies, setCompanies] = useState([])
@@ -92,7 +173,7 @@ export default function ReferenceBoard() {
   const [loading, setLoading] = useState(true)
   const [activeRef, setActiveRef] = useState(null)
   const [newCardIds, setNewCardIds] = useState([])
-  const [filters, setFilters] = useState({ type: 'all', ba: 'all', from: '', to: '' })
+  const [filters, setFilters] = useState({ type: 'all', ba: 'all', from: '', to: '', search: '' })
   const [placementForm, setPlacementForm] = useState({
     id: '',
     studentId: '',
@@ -149,6 +230,8 @@ export default function ReferenceBoard() {
     socket.on('status_updated', refresh)
     socket.on('reordered', refresh)
     socket.on('placement_created', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('placement_paid', refresh)
 
     return () => {
       socket.off('new_student', handleNewStudent)
@@ -156,6 +239,8 @@ export default function ReferenceBoard() {
       socket.off('status_updated', refresh)
       socket.off('reordered', refresh)
       socket.off('placement_created', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('placement_paid', refresh)
     }
   }, [])
 
@@ -174,9 +259,19 @@ export default function ReferenceBoard() {
   }, [students, companies])
 
   const filteredReferences = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    const searchDigits = digitsOnly(search)
+
     return references
       .filter((reference) => (filters.type === 'all' ? true : reference.type === filters.type))
       .filter((reference) => (filters.ba === 'all' ? true : reference.submittedBy?._id === filters.ba))
+      .filter((reference) => {
+        if (!search) return true
+        const text = buildReferenceSearchText(reference)
+        if (text.includes(search)) return true
+        if (searchDigits.length < 3) return false
+        return buildReferenceSearchDigits(reference).includes(searchDigits)
+      })
       .filter((reference) => {
         if (!filters.from && !filters.to) return true
         const created = new Date(reference.createdAt).getTime()
@@ -374,13 +469,32 @@ export default function ReferenceBoard() {
       return
     }
 
+    const offeredSalaryPM = parseSalary(placementForm.offeredSalaryPM)
+    const earningPercent = Number(placementForm.earningPercent || 0)
+    const salaryBasis = Number(placementForm.salaryBasis || 1)
+
+    if (!Number.isFinite(offeredSalaryPM) || offeredSalaryPM < 0) {
+      toast.error('Offered salary must be a valid non-negative number')
+      return
+    }
+
+    if (!Number.isFinite(earningPercent) || earningPercent < 0 || earningPercent > 100) {
+      toast.error('Earning % must be between 0 and 100')
+      return
+    }
+
+    if (!Number.isInteger(salaryBasis) || salaryBasis < 1 || salaryBasis > 12) {
+      toast.error('Salary basis must be an integer between 1 and 12')
+      return
+    }
+
     setPlacementSaving(true)
     try {
       const payload = {
         studentId: activeRef._id,
         companyId: placementForm.companyId,
         jobProfile: placementForm.jobProfile,
-        offeredSalaryPM: Number(placementForm.offeredSalaryPM || 0),
+        offeredSalaryPM,
         joiningDate: placementForm.joiningDate || undefined,
         selectionStatus: placementForm.selectionStatus,
         processStage: placementForm.processStage,
@@ -388,8 +502,8 @@ export default function ReferenceBoard() {
         interviewDate: placementForm.interviewDate || undefined,
         interviewMode: placementForm.interviewMode || undefined,
         processNotes: placementForm.processNotes,
-        earningPercent: Number(placementForm.earningPercent || 0),
-        salaryBasis: Number(placementForm.salaryBasis || 1),
+        earningPercent,
+        salaryBasis,
         adminNotes: placementForm.adminNotes
       }
 
@@ -401,7 +515,7 @@ export default function ReferenceBoard() {
       }
 
       setPlacementForm((current) => ({ ...current, id: response.data._id }))
-      setPlacementBanner(`Placement saved — Advisor earns ${formatMoney(response.data.earningAmount)}`)
+      setPlacementBanner(`Placement saved - Advisor earns ${formatMoney(response.data.earningAmount)}`)
       toast.success(placementForm.id ? 'Placement updated' : 'Placement created')
       await loadBoardData()
     } catch (error) {
@@ -429,7 +543,7 @@ export default function ReferenceBoard() {
         </p>
       </div>
 
-      <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-4">
+      <div className="grid gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 md:grid-cols-5">
         <select
           value={filters.type}
           onChange={(event) => setFilters((current) => ({ ...current, type: event.target.value }))}
@@ -466,6 +580,16 @@ export default function ReferenceBoard() {
             type="date"
             value={filters.to}
             onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))}
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case"
+          />
+        </label>
+        <label className="text-xs font-semibold uppercase text-slate-500 md:col-span-5">
+          Search
+          <input
+            type="text"
+            value={filters.search}
+            onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+            placeholder="Search by name, mobile, aadhaar, email, applied/job profile, company, contact person..."
             className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm normal-case"
           />
         </label>
@@ -540,9 +664,13 @@ export default function ReferenceBoard() {
                                     ? `Applied for: ${reference.appliedFor || 'Not provided'}`
                                     : `Role: ${reference.jobRequirements?.jobProfile || 'Not provided'}`}
                                 </p>
-                                <p className="mt-1 text-xs text-slate-500">
-                                  By {reference.submittedBy?.name || 'BA'} ·{' '}
-                                  {formatDistanceToNow(new Date(reference.createdAt), { addSuffix: true })}
+                                <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                                  <span>By</span>
+                                  <span className="rounded bg-indigo-50 px-1.5 py-0.5 font-semibold text-indigo-700">
+                                    {reference.submittedBy?.name || 'BA'}
+                                  </span>
+                                  <span>|</span>
+                                  <span>{formatDistanceToNow(new Date(reference.createdAt), { addSuffix: true })}</span>
                                 </p>
                               </button>
                             </article>
@@ -576,8 +704,13 @@ export default function ReferenceBoard() {
                   <StatusBadge status={activeRef.status} />
                 </div>
                 <h2 className="truncate text-xl font-bold text-slate-900">{referenceLabel(activeRef)}</h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  By {activeRef.submittedBy?.name || 'BA'} · {format(new Date(activeRef.createdAt), 'dd MMM yyyy, hh:mm a')}
+                <p className="mt-1 flex items-center gap-2 text-sm text-slate-500">
+                  <span>By</span>
+                  <span className="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">
+                    {activeRef.submittedBy?.name || 'BA'}
+                  </span>
+                  <span>|</span>
+                  <span>{format(new Date(activeRef.createdAt), 'dd MMM yyyy, hh:mm a')}</span>
                 </p>
               </div>
               <button
@@ -764,7 +897,7 @@ export default function ReferenceBoard() {
                       onChange={(value) => setPlacementForm((current) => ({ ...current, salaryBasis: value }))}
                     />
                     <div className="sm:col-span-2 -mt-2 text-xs text-slate-500">
-                      Advisor earns % of (salary × basis months)
+                      Advisor earns % of (salary x basis months)
                     </div>
                     <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
                       <p className="text-xs uppercase text-slate-500">Earning Amount</p>
@@ -954,3 +1087,5 @@ function Info({ label, value, multiline = false, icon: Icon }) {
     </div>
   )
 }
+
+

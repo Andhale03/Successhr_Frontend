@@ -2,17 +2,23 @@ import { useEffect, useMemo, useState } from 'react'
 import toast from 'react-hot-toast'
 import { Eye, Trash2 } from 'lucide-react'
 import { format } from 'date-fns'
+import { useSearchParams } from 'react-router-dom'
 import api from '../../api/axios'
 import DetailDrawer from '../../components/DetailDrawer'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 
 export default function Companies() {
+  const [searchParams] = useSearchParams()
   const [companies, setCompanies] = useState([])
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [savingFull, setSavingFull] = useState(false)
-  const [filters, setFilters] = useState({ search: '', status: 'all', ba: 'all' })
+  const [filters, setFilters] = useState(() => ({
+    search: searchParams.get('search') || '',
+    status: searchParams.get('status') || 'all',
+    ba: searchParams.get('ba') || 'all'
+  }))
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {

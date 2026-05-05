@@ -2,7 +2,9 @@ import { Fragment, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { Check, ChevronDown, ChevronUp, IndianRupee, Pencil, Save, X } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useSearchParams } from 'react-router-dom'
 import api from '../../api/axios'
+import socket from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
 import Skeleton from '../../components/Skeleton'
 
@@ -32,7 +34,10 @@ const formatMoney = (amount) =>
     maximumFractionDigits: 0
   }).format(Number(amount || 0))
 
+const digitsOnly = (value) => String(value || '').replace(/\D/g, '')
+
 export default function CommissionPanel() {
+  const [searchParams] = useSearchParams()
   const [placements, setPlacements] = useState([])
   const [summaryRows, setSummaryRows] = useState([])
   const [bas, setBas] = useState([])
@@ -48,14 +53,15 @@ export default function CommissionPanel() {
     salaryBasis: 1,
     adminNotes: ''
   })
-  const [filters, setFilters] = useState({
-    ba: 'all',
-    earningStatus: 'all',
-    selectionStatus: 'all',
-    processStage: 'all',
-    from: '',
-    to: ''
-  })
+  const [filters, setFilters] = useState(() => ({
+    ba: searchParams.get('ba') || 'all',
+    earningStatus: searchParams.get('earningStatus') || 'all',
+    selectionStatus: searchParams.get('selectionStatus') || 'all',
+    processStage: searchParams.get('processStage') || 'all',
+    from: searchParams.get('from') || '',
+    to: searchParams.get('to') || '',
+    search: searchParams.get('search') || ''
+  }))
   const [detail, setDetail] = useState(null)
 
   const loadData = async () => {
@@ -78,12 +84,68 @@ export default function CommissionPanel() {
     })
   }, [])
 
+  useEffect(() => {
+    const refresh = () => {
+      loadData().catch(() => {})
+    }
+
+    socket.on('placement_created', refresh)
+    socket.on('placement_updated', refresh)
+    socket.on('placement_paid', refresh)
+
+    return () => {
+      socket.off('placement_created', refresh)
+      socket.off('placement_updated', refresh)
+      socket.off('placement_paid', refresh)
+    }
+  }, [])
+
   const filteredPlacements = useMemo(() => {
+    const search = filters.search.trim().toLowerCase()
+    const searchDigits = digitsOnly(search)
+
     return placements
       .filter((placement) => (filters.ba === 'all' ? true : placement.baId?._id === filters.ba))
       .filter((placement) => (filters.earningStatus === 'all' ? true : placement.earningStatus === filters.earningStatus))
       .filter((placement) => (filters.selectionStatus === 'all' ? true : placement.selectionStatus === filters.selectionStatus))
       .filter((placement) => (filters.processStage === 'all' ? true : placement.processStage === filters.processStage))
+      .filter((placement) => {
+        if (!search) return true
+
+        const searchableText = [
+          placement.studentId?.candidateName,
+          placement.studentId?.appliedFor,
+          placement.companyId?.companyName,
+          placement.baId?.name,
+          placement.baId?.email,
+          placement.jobProfile,
+          placement.selectionStatus,
+          selectionStatusLabel[placement.selectionStatus],
+          placement.processStage,
+          processStageLabel[placement.processStage],
+          placement.earningStatus
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase()
+
+        if (searchableText.includes(search)) return true
+
+        if (searchDigits.length < 3) return false
+
+        const searchableDigits = [
+          placement.studentId?.mobileNumber,
+          placement.offeredSalaryPM,
+          placement.salaryBasis,
+          placement.earningPercent,
+          placement.earningAmount
+        ]
+          .map((value) => digitsOnly(value))
+          .filter(Boolean)
+          .join(' ')
+
+        return searchableDigits.includes(searchDigits)
+      })
       .filter((placement) => {
         if (!filters.from && !filters.to) return true
         const createdAt = new Date(placement.createdAt).getTime()
@@ -116,7 +178,8 @@ export default function CommissionPanel() {
       filters.selectionStatus === 'all' &&
       filters.processStage === 'all' &&
       !filters.from &&
-      !filters.to
+      !filters.to &&
+      !filters.search.trim()
 
     if (useServerSummary && summaryRows.length) {
       return summaryRows.map((row) => ({
@@ -206,6 +269,14 @@ export default function CommissionPanel() {
   }
 
   const markPaid = async (placement) => {
+    const studentName = placement.studentId?.candidateName || 'this student'
+    const amount = formatMoney(placement.earningAmount || 0)
+    const confirmed = window.confirm(
+      `Are you sure you want to mark advisor payment as paid for ${studentName} (${amount})?\n\nPress OK for Yes or Cancel for No.`
+    )
+
+    if (!confirmed) return
+
     try {
       await api.patch(`/placements/${placement._id}/pay`, {
         earningStatus: 'paid',
@@ -307,6 +378,13 @@ export default function CommissionPanel() {
           value={filters.to}
           onChange={(event) => setFilters((current) => ({ ...current, to: event.target.value }))}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+        />
+        <input
+          type="text"
+          value={filters.search}
+          onChange={(event) => setFilters((current) => ({ ...current, search: event.target.value }))}
+          placeholder="Search BA / student / company / salary / earning"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm md:col-span-2"
         />
       </div>
 
