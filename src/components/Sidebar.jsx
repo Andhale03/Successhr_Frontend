@@ -8,7 +8,7 @@ import {
   UserCircle,
   UserCheck,
   Users,
-  X,
+  // X,
   Settings,
   Wallet
 } from 'lucide-react'
@@ -66,9 +66,9 @@ export default function Sidebar({ role, children }) {
       >
         <div className="flex items-center justify-between border-b border-slate-700 p-4">
           <BrandLogo />
-          <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu">
+          {/* <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu">
             <X />
-          </button>
+          </button> */}
         </div>
 
         <nav className="space-y-1 p-3">

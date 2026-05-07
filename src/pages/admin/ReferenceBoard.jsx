@@ -3,14 +3,18 @@ import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { format, formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 import {
-  ArrowDown,
-  ArrowUp,
+  // ArrowDown,
+  // ArrowUp,
+  AlertTriangle,
   Building2,
   Calendar,
-  GripVertical,
+  // GripVertical,
   Save,
   UserCircle2,
   UsersRound,
+  Eye,
+Pencil,
+Trash2,
   X
 } from 'lucide-react'
 import api, { assetUrl } from '../../api/axios'
@@ -173,6 +177,7 @@ export default function ReferenceBoard() {
   const [bas, setBas] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeRef, setActiveRef] = useState(null)
+  const [viewMode, setViewMode] = useState('view')
   const [newCardIds, setNewCardIds] = useState([])
   const [filters, setFilters] = useState({ type: 'all', ba: 'all', from: '', to: '', search: '' })
   const [placementForm, setPlacementForm] = useState({
@@ -195,6 +200,7 @@ export default function ReferenceBoard() {
   const [placementSaving, setPlacementSaving] = useState(false)
   const [metaSaving, setMetaSaving] = useState(false)
   const [referenceSaving, setReferenceSaving] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState(null)
   const [placementBanner, setPlacementBanner] = useState('')
 
   const loadBoardData = async () => {
@@ -308,49 +314,6 @@ export default function ReferenceBoard() {
     }, {})
   }, [filteredReferences])
 
-  const syncReorder = async (type, orderedIds) => {
-    if (!orderedIds.length) return
-    const endpoint = type === 'student' ? '/students/reorder' : '/companies/reorder'
-    await api.patch(endpoint, { orderedIds })
-  }
-
-  const moveWithinType = async (reference, direction) => {
-    const list = filteredReferences
-      .filter((item) => item.type === reference.type && item.status === reference.status)
-      .sort((a, b) => (a.priorityOrder || 0) - (b.priorityOrder || 0))
-    const index = list.findIndex((item) => item._id === reference._id)
-    const target = direction === 'up' ? index - 1 : index + 1
-
-    if (index < 0 || target < 0 || target >= list.length) return
-
-    const swapped = [...list]
-    const [picked] = swapped.splice(index, 1)
-    swapped.splice(target, 0, picked)
-
-    const orderedIds = swapped.map((item) => item._id)
-
-    try {
-      await syncReorder(reference.type, orderedIds)
-      if (reference.type === 'student') {
-        setStudents((current) =>
-          current.map((item) => ({
-            ...item,
-            priorityOrder: orderedIds.includes(item._id) ? orderedIds.indexOf(item._id) : item.priorityOrder
-          }))
-        )
-      } else {
-        setCompanies((current) =>
-          current.map((item) => ({
-            ...item,
-            priorityOrder: orderedIds.includes(item._id) ? orderedIds.indexOf(item._id) : item.priorityOrder
-          }))
-        )
-      }
-    } catch (_error) {
-      toast.error('Could not reorder cards')
-    }
-  }
-
   const updateReferenceStatus = async (reference, nextStatus) => {
     const endpoint = reference.type === 'student' ? `/students/${reference._id}/status` : `/companies/${reference._id}/status`
     const { data } = await api.patch(endpoint, {
@@ -386,8 +349,9 @@ export default function ReferenceBoard() {
     }
   }
 
-  const openReference = async (reference) => {
+  const openReference = async (reference, mode = 'view') => {
     setPlacementBanner('')
+    setViewMode(mode)
     setActiveRef(reference)
 
     if (reference.type !== 'student') return
@@ -455,6 +419,34 @@ export default function ReferenceBoard() {
         salaryBasis: 1,
         adminNotes: ''
       })
+    }
+  }
+
+  const deleteReference = (reference) => {
+    setDeleteConfirm(reference)
+  }
+
+  const handleDelete = async () => {
+    if (!deleteConfirm) return
+
+    try {
+      if (deleteConfirm.type === 'student') {
+        await api.delete(`/students/${deleteConfirm._id}`)
+        setStudents((current) => current.filter((item) => item._id !== deleteConfirm._id))
+      } else {
+        await api.delete(`/companies/${deleteConfirm._id}`)
+        setCompanies((current) => current.filter((item) => item._id !== deleteConfirm._id))
+      }
+
+      if (activeRef?.type === deleteConfirm.type && activeRef?._id === deleteConfirm._id) {
+        setActiveRef(null)
+      }
+
+      toast.success('Record deleted successfully')
+    } catch (error) {
+      toast.error('Could not delete record')
+    } finally {
+      setDeleteConfirm(null)
     }
   }
 
@@ -598,6 +590,8 @@ export default function ReferenceBoard() {
     [placementForm.offeredSalaryPM, placementForm.earningPercent, placementForm.salaryBasis]
   )
 
+  const isViewMode = viewMode === 'view'
+
   if (loading) {
     return <Skeleton rows={12} />
   }
@@ -698,34 +692,44 @@ export default function ReferenceBoard() {
                                   className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                                     reference.type === 'student' ? 'bg-blue-100 text-blue-700' : 'bg-violet-100 text-violet-700'
                                   }`}
-                                  onClick={() => openReference(reference)}
+                                  onClick={() => openReference(reference, 'view')}
                                 >
                                   {reference.type === 'student' ? 'Student' : 'Company'}
                                 </button>
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => moveWithinType(reference, 'up')}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-slate-100"
-                                    title="Move up"
-                                  >
-                                    <ArrowUp className="h-3.5 w-3.5" />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => moveWithinType(reference, 'down')}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-500 hover:bg-slate-100"
-                                    title="Move down"
-                                  >
-                                    <ArrowDown className="h-3.5 w-3.5" />
-                                  </button>
-                                  <span {...dragProvided.dragHandleProps} className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-500">
-                                    <GripVertical className="h-4 w-4" />
-                                  </span>
-                                </div>
+                               <div className="flex items-center gap-1">
+  {/* VIEW */}
+  <button
+    type="button"
+    onClick={() => openReference(reference, 'view')}
+    className="inline-flex h-7 w-7 items-center justify-center rounded text-blue-600 hover:bg-blue-100"
+    title="View"
+  >
+    <Eye className="h-4 w-4" />
+  </button>
+
+  {/* EDIT */}
+  <button
+    type="button"
+    onClick={() => openReference(reference, 'edit')}
+    className="inline-flex h-7 w-7 items-center justify-center rounded text-emerald-600 hover:bg-emerald-100"
+    title="Edit"
+  >
+    <Pencil className="h-4 w-4" />
+  </button>
+
+  {/* DELETE */}
+  <button
+    type="button"
+    onClick={() => deleteReference(reference)}
+    className="inline-flex h-7 w-7 items-center justify-center rounded text-red-600 hover:bg-red-100"
+    title="Delete"
+  >
+    <Trash2 className="h-4 w-4" />
+  </button>
+</div>
                               </div>
 
-                              <button type="button" className="w-full text-left" onClick={() => openReference(reference)}>
+                              <button type="button" className="w-full text-left" onClick={() => openReference(reference, 'view')}>
                                 <p className="line-clamp-2 font-semibold text-slate-900">{referenceLabel(reference)}</p>
                                 <p className="mt-1 text-xs text-slate-600">
                                   {reference.type === 'student'
@@ -797,15 +801,17 @@ export default function ReferenceBoard() {
               <section className="rounded-xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold uppercase text-slate-500">Reference Details</h3>
-                  <button
-                    type="button"
-                    onClick={saveReferenceDetails}
-                    disabled={referenceSaving}
-                    className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    {referenceSaving ? 'Saving...' : 'Save Details'}
-                  </button>
+                  { !isViewMode && (
+                    <button
+                      type="button"
+                      onClick={saveReferenceDetails}
+                      disabled={referenceSaving}
+                      className="inline-flex min-h-9 items-center gap-2 rounded-lg bg-indigo-600 px-3 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
+                    >
+                      <Save className="h-3.5 w-3.5" />
+                      {referenceSaving ? 'Saving...' : 'Save Details'}
+                    </button>
+                  ) }
                 </div>
                 {activeRef.type === 'student' ? (
                   <>
@@ -813,71 +819,85 @@ export default function ReferenceBoard() {
                       <Field
                         label="Candidate Name"
                         value={activeRef.candidateName}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, candidateName: value }))}
                       />
                       <Field
                         label="Mobile Number"
                         value={activeRef.mobileNumber}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, mobileNumber: value }))}
                       />
                       <Field
                         label="Aadhaar Number"
                         value={activeRef.aadhaarNo}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, aadhaarNo: value }))}
                       />
                       <Field
                         label="Email"
                         value={activeRef.emailId}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, emailId: value }))}
                       />
                       <Field
                         label="Applied For"
                         value={activeRef.appliedFor}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, appliedFor: value }))}
                       />
                       <Field
                         label="Interested Department"
                         value={activeRef.interestedDepartment}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, interestedDepartment: value }))}
                       />
                       <Field
                         label="Preferred Industry"
                         value={activeRef.preferredIndustry}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, preferredIndustry: value }))}
                       />
                       <Field
                         label="Preferred Job Location"
                         value={activeRef.preferredJobLocation}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, preferredJobLocation: value }))}
                       />
                       <Field
                         label="Education"
                         value={activeRef.education}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, education: value }))}
                       />
                       <Field
                         label="Experience (years)"
                         value={activeRef.totalExperience}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, totalExperience: value }))}
                       />
                       <Field
                         label="Current Salary"
                         value={activeRef.currentSalary}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, currentSalary: value }))}
                       />
                       <Field
                         label="Expected Salary"
                         value={activeRef.expectedSalary}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, expectedSalary: value }))}
                       />
                       <Field
                         label="Notice Period (months)"
                         value={activeRef.noticePeriod}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, noticePeriod: value }))}
                       />
                       <Field
                         label="Current Job Location"
                         value={activeRef.currentJobLocation}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, currentJobLocation: value }))}
                       />
                       <label className="text-sm font-semibold text-slate-700">
@@ -885,7 +905,10 @@ export default function ReferenceBoard() {
                         <select
                           value={activeRef.marriageStatus || ''}
                           onChange={(event) => setActiveRef((current) => ({ ...current, marriageStatus: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                          disabled={isViewMode}
+                          className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                            isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                          }`}
                         >
                           <option value="">Select status</option>
                           <option value="Married">Married</option>
@@ -902,7 +925,10 @@ export default function ReferenceBoard() {
                         onChange={(event) =>
                           setActiveRef((current) => ({ ...current, careerSummary: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       />
                     </label>
                     <label className="mb-3 block text-sm font-semibold text-slate-700">
@@ -913,7 +939,10 @@ export default function ReferenceBoard() {
                         onChange={(event) =>
                           setActiveRef((current) => ({ ...current, reasonForJobChange: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       />
                     </label>
                     <StudentDetail student={activeRef} />
@@ -924,31 +953,37 @@ export default function ReferenceBoard() {
                       <Field
                         label="Company Name"
                         value={activeRef.companyName}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, companyName: value }))}
                       />
                       <Field
                         label="Contact Person"
                         value={activeRef.contactPersonName}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, contactPersonName: value }))}
                       />
                       <Field
                         label="Designation"
                         value={activeRef.contactPersonDesignation}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, contactPersonDesignation: value }))}
                       />
                       <Field
                         label="Mobile"
                         value={activeRef.mobileNo}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, mobileNo: value }))}
                       />
                       <Field
                         label="Email"
                         value={activeRef.emailId}
+                        readOnly={isViewMode}
                         onChange={(value) => setActiveRef((current) => ({ ...current, emailId: value }))}
                       />
                       <Field
                         label="Job Profile"
                         value={activeRef.jobRequirements?.jobProfile}
+                        readOnly={isViewMode}
                         onChange={(value) =>
                           setActiveRef((current) => ({
                             ...current,
@@ -968,7 +1003,10 @@ export default function ReferenceBoard() {
                         onChange={(event) =>
                           setActiveRef((current) => ({ ...current, companyAddress: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       />
                     </label>
                     <CompanyDetail company={activeRef} />
@@ -984,7 +1022,10 @@ export default function ReferenceBoard() {
                     <select
                       value={activeRef.status}
                       onChange={(event) => setActiveRef((current) => ({ ...current, status: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                      disabled={isViewMode}
+                      className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                        isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                      }`}
                     >
                       <option value="not_viewed">Not Viewed</option>
                       <option value="in_review">In Review</option>
@@ -998,27 +1039,32 @@ export default function ReferenceBoard() {
                       rows={3}
                       value={activeRef.adminNotes || ''}
                       onChange={(event) => setActiveRef((current) => ({ ...current, adminNotes: event.target.value }))}
-                      onBlur={saveMeta}
-                      className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                      onBlur={isViewMode ? undefined : saveMeta}
+                      disabled={isViewMode}
+                      className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                        isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                      }`}
                     />
                   </label>
                 </div>
-                <button
-                  type="button"
-                  onClick={saveMeta}
-                  disabled={metaSaving}
-                  className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
-                >
-                  <Save className="h-4 w-4" />
-                  {metaSaving ? 'Saving...' : 'Save'}
-                </button>
+                { !isViewMode && (
+                  <button
+                    type="button"
+                    onClick={saveMeta}
+                    disabled={metaSaving}
+                    className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
+                  >
+                    <Save className="h-4 w-4" />
+                    {metaSaving ? 'Saving...' : 'Save'}
+                  </button>
+                ) }
               </section>
 
               {activeRef.type === 'student' && (
                 <section className="rounded-xl border border-slate-200 p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <h3 className="text-sm font-bold uppercase text-slate-500">
-                      {placementForm.id ? 'Edit Placement' : 'Create Placement'}
+                      {isViewMode ? 'Placement Details' : placementForm.id ? 'Edit Placement' : 'Create Placement'}
                     </h3>
                     {placementBanner ? <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">{placementBanner}</span> : null}
                   </div>
@@ -1029,7 +1075,10 @@ export default function ReferenceBoard() {
                       <select
                         value={placementForm.companyId}
                         onChange={(event) => setPlacementForm((current) => ({ ...current, companyId: event.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       >
                         <option value="">Select company</option>
                         {companies.map((company) => (
@@ -1043,18 +1092,21 @@ export default function ReferenceBoard() {
                     <Field
                       label="Job Profile"
                       value={placementForm.jobProfile}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, jobProfile: value }))}
                     />
                     <Field
                       label="Offered Salary (PM)"
                       type="number"
                       value={placementForm.offeredSalaryPM}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, offeredSalaryPM: value }))}
                     />
                     <Field
                       label="Joining Date"
                       type="date"
                       value={placementForm.joiningDate}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, joiningDate: value }))}
                     />
                     <label className="text-sm font-semibold text-slate-700">
@@ -1070,7 +1122,10 @@ export default function ReferenceBoard() {
                               processStageBySelectionStatus[nextSelectionStatus] || current.processStage
                           }))
                         }}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       >
                         {selectionStatuses.map((status) => (
                           <option key={status.value} value={status.value}>
@@ -1092,7 +1147,10 @@ export default function ReferenceBoard() {
                               selectionStatusByProcessStage[nextProcessStage] || current.selectionStatus
                           }))
                         }}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       >
                         {processStages.map((stage) => (
                           <option key={stage.value} value={stage.value}>
@@ -1105,12 +1163,14 @@ export default function ReferenceBoard() {
                       label="Appointment Letter Date"
                       type="date"
                       value={placementForm.appointmentLetterDate}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, appointmentLetterDate: value }))}
                     />
                     <Field
                       label="Interview Date"
                       type="date"
                       value={placementForm.interviewDate}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, interviewDate: value }))}
                     />
                     <label className="text-sm font-semibold text-slate-700">
@@ -1118,7 +1178,10 @@ export default function ReferenceBoard() {
                       <select
                         value={placementForm.interviewMode}
                         onChange={(event) => setPlacementForm((current) => ({ ...current, interviewMode: event.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       >
                         <option value="">Select mode</option>
                         <option value="Online">Online</option>
@@ -1131,12 +1194,14 @@ export default function ReferenceBoard() {
                       label="Earning %"
                       type="number"
                       value={placementForm.earningPercent}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, earningPercent: value }))}
                     />
                     <Field
                       label="Salary Basis (months)"
                       type="number"
                       value={placementForm.salaryBasis}
+                      readOnly={isViewMode}
                       onChange={(value) => setPlacementForm((current) => ({ ...current, salaryBasis: value }))}
                     />
                     <div className="sm:col-span-2 -mt-2 text-xs text-slate-500">
@@ -1152,7 +1217,10 @@ export default function ReferenceBoard() {
                           key={percent}
                           type="button"
                           onClick={() => setPlacementForm((current) => ({ ...current, earningPercent: percent }))}
-                          className="inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                          disabled={isViewMode}
+                          className={`inline-flex min-h-8 items-center rounded-lg border border-slate-300 px-2.5 text-xs font-semibold text-slate-700 ${
+                            isViewMode ? 'cursor-not-allowed opacity-60' : 'hover:bg-slate-100'
+                          }`}
                         >
                           {percent}%
                         </button>
@@ -1169,7 +1237,10 @@ export default function ReferenceBoard() {
                         onChange={(event) =>
                           setPlacementForm((current) => ({ ...current, processNotes: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       />
                     </label>
                     <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
@@ -1180,31 +1251,68 @@ export default function ReferenceBoard() {
                         onChange={(event) =>
                           setPlacementForm((current) => ({ ...current, adminNotes: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+                        disabled={isViewMode}
+                        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+                          isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+                        }`}
                       />
                     </label>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={savePlacement}
-                    disabled={placementSaving}
-                    className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
-                  >
-                    <Save className="h-4 w-4" />
-                    {placementSaving ? 'Saving...' : placementForm.id ? 'Save Placement' : 'Create Placement'}
-                  </button>
+                  { !isViewMode && (
+                    <button
+                      type="button"
+                      onClick={savePlacement}
+                      disabled={placementSaving}
+                      className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
+                    >
+                      <Save className="h-4 w-4" />
+                      {placementSaving ? 'Saving...' : placementForm.id ? 'Save Placement' : 'Create Placement'}
+                    </button>
+                  ) }
                 </section>
               )}
             </div>
           </aside>
         </div>
       )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-xl border border-slate-200">
+            <div className="mb-4 text-center">
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                <AlertTriangle className="h-6 w-6 text-red-600" />
+              </div>
+              <h3 className="mt-4 text-lg font-semibold text-slate-900">Delete Record</h3>
+              <p className="mt-2 text-sm text-slate-600">
+                Are you sure you want to delete this record? This action cannot be undone.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeleteConfirm(null)}
+                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
 
-function Field({ label, value, onChange, type = 'text' }) {
+function Field({ label, value, onChange, type = 'text', readOnly = false }) {
   return (
     <label className="text-sm font-semibold text-slate-700">
       {label}
@@ -1212,7 +1320,10 @@ function Field({ label, value, onChange, type = 'text' }) {
         type={type}
         value={value || ''}
         onChange={(event) => onChange(event.target.value)}
-        className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2"
+        readOnly={readOnly}
+        className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
+          readOnly ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
+        }`}
       />
     </label>
   )
