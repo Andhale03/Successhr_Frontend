@@ -33,17 +33,6 @@ const selectionStatusLabel = {
   on_hold: 'On Hold'
 }
 
-const processStageLabel = {
-  appointment_letter_pending: 'Appointment Letter Pending',
-  appointment_letter_shared: 'Appointment Letter Shared',
-  interview_scheduled: 'Interview Scheduled',
-  interview_completed: 'Interview Completed',
-  selected: 'Selected',
-  joined: 'Joined',
-  rejected: 'Rejected',
-  on_hold: 'On Hold'
-}
-
 export default function Students() {
   const token = useSelector((state) => state.auth.token)
   const [students, setStudents] = useState([])
@@ -305,7 +294,6 @@ export default function Students() {
                 <th className="px-5 py-3">Applied For</th>
                 <th className="px-5 py-3">Submitted</th>
                 <th className="px-5 py-3">Ref. Status</th>
-                <th className="px-5 py-3">Next Process</th>
                 <th className="px-5 py-3">My Earning</th>
                 <th className="px-5 py-3">Documents</th>
                 <th className="px-5 py-3">Actions</th>
@@ -340,9 +328,6 @@ export default function Students() {
                       <StatusBadge status={student.status} />
                     )}
                   </td>
-                  <td className="px-5 py-3 text-slate-700">
-                    {student.placement?.processStage ? processStageLabel[student.placement.processStage] || student.placement.processStage : '-'}
-                  </td>
                   <td className="px-5 py-3">
                     <EarningCell placement={student.placement} />
                   </td>
@@ -370,7 +355,7 @@ export default function Students() {
               ))}
               {!filtered.length && (
                 <tr>
-                  <td colSpan="8" className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan="7" className="px-5 py-12 text-center text-slate-500">
                     No candidates found for current filters.
                   </td>
                 </tr>

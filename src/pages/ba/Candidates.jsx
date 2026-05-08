@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
+import { Eye } from 'lucide-react'
 import api from '../../api/axios'
 import socket, { connectSocket, disconnectSocket } from '../../socket'
 import DetailDrawer from '../../components/DetailDrawer'
@@ -25,17 +26,6 @@ const selectionStatusColors = {
 
 const selectionStatusLabel = {
   shortlisted: 'Shortlisted',
-  selected: 'Selected',
-  joined: 'Joined',
-  rejected: 'Rejected',
-  on_hold: 'On Hold'
-}
-
-const processStageLabel = {
-  appointment_letter_pending: 'Appointment Letter Pending',
-  appointment_letter_shared: 'Appointment Letter Shared',
-  interview_scheduled: 'Interview Scheduled',
-  interview_completed: 'Interview Completed',
   selected: 'Selected',
   joined: 'Joined',
   rejected: 'Rejected',
@@ -108,7 +98,7 @@ export default function Candidates() {
       Candidates.map((Candidate) => {
         const placement = placementBycandidateId.get(Candidate._id)
         return {
-          ...candidate,
+          ...Candidate,
           placement,
           effectiveStatus: placement?.selectionStatus || Candidate.status
         }
@@ -232,17 +222,16 @@ export default function Candidates() {
                 <th className="px-5 py-3">Applied For</th>
                 <th className="px-5 py-3">Submitted</th>
                 <th className="px-5 py-3">Ref. Status</th>
-                <th className="px-5 py-3">Next Process</th>
                 <th className="px-5 py-3">My Earning</th>
                 <th className="px-5 py-3">Documents</th>
+                <th className="px-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filtered.map((Candidate) => (
                 <tr
                   key={Candidate._id}
-                  onClick={() => setSelected(Candidate)}
-                  className="cursor-pointer odd:bg-white even:bg-slate-50 hover:bg-indigo-50/50"
+                  className="odd:bg-white even:bg-slate-50"
                 >
                   <td className="px-5 py-3">
                     <p className="font-semibold text-slate-900">{Candidate.candidateName}</p>
@@ -263,9 +252,6 @@ export default function Candidates() {
                       <StatusBadge status={Candidate.status} />
                     )}
                   </td>
-                  <td className="px-5 py-3 text-slate-700">
-                    {Candidate.placement?.processStage ? processStageLabel[Candidate.placement.processStage] || Candidate.placement.processStage : '-'}
-                  </td>
                   <td className="px-5 py-3">
                     <EarningCell placement={Candidate.placement} />
                   </td>
@@ -275,6 +261,16 @@ export default function Candidates() {
                     ) : (
                       <span className="text-slate-500">No files</span>
                     )}
+                  </td>
+                  <td className="px-5 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(Candidate)}
+                      className="inline-flex min-h-9 items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-xs font-semibold text-white hover:bg-sky-700"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
