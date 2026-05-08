@@ -21,10 +21,13 @@ import InterviewList from './pages/admin/Interviews/InterviewList'
 import ApplyPage from './pages/public/ApplyPage'
 import CmsCandidatesList from './candidate/pages/admin/Candidates/CandidatesList'
 import CmsCandidateForm from './candidate/pages/admin/Candidates/CandidateForm'
-import CmsCandidateDetails from './candidate/pages/admin/Candidates/CandidateDetails'
+import CmsAddCandidate from './candidate/pages/admin/Candidates/AddCandidate'
+import CmsCandidateDetail from './candidate/pages/admin/Candidates/CandidateDetail'
 import CmsCompaniesList from './candidate/pages/admin/Candidates/CompaniesList'
 import CmsCompanyForm from './candidate/pages/admin/Candidates/CompanyForm'
 import CmsProcessPanel from './candidate/pages/admin/CommissionProcessPanel'
+import CmsInterviewList from './candidate/pages/admin/Interviews/InterviewList'
+import CmsInterviewDetails from './candidate/pages/admin/Interviews/InterviewDetails'
 
 function HomeRedirect() {
   const { token, user } = useSelector((state) => state.auth)
@@ -124,11 +127,21 @@ export default function App() {
         }
       />
       <Route
+        path="/admin/cms/candidates/add"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsAddCandidate />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/cms/candidates/:id"
         element={
           <ProtectedRoute roles={['candidateAdmin']}>
             <AppShell role="candidateAdmin">
-              <CmsCandidateDetails />
+              <CmsCandidateDetail />
             </AppShell>
           </ProtectedRoute>
         }
@@ -138,7 +151,7 @@ export default function App() {
         element={
           <ProtectedRoute roles={['candidateAdmin']}>
             <AppShell role="candidateAdmin">
-              <CmsCandidateForm />
+              <CmsAddCandidate />
             </AppShell>
           </ProtectedRoute>
         }
@@ -169,6 +182,26 @@ export default function App() {
           <ProtectedRoute roles={['candidateAdmin']}>
             <AppShell role="candidateAdmin">
               <CmsCompanyForm />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/interviews"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsInterviewList />
+            </AppShell>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/cms/interviews/:id"
+        element={
+          <ProtectedRoute roles={['candidateAdmin']}>
+            <AppShell role="candidateAdmin">
+              <CmsInterviewDetails />
             </AppShell>
           </ProtectedRoute>
         }

@@ -109,11 +109,8 @@ export default function Sidebar({ role, children }) {
                 <NavLink to="/admin/cms/candidates" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
                   <UserCheck size={16} /> <span className="whitespace-nowrap">Candidates</span>
                 </NavLink>
-                <NavLink to="/admin/cms/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <Building2 size={16} /> <span className="whitespace-nowrap">Companies</span>
-                </NavLink>
-                <NavLink to="/admin/process-panel" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <PanelsTopLeft size={16} /> <span className="whitespace-nowrap">Process Panel</span>
+                <NavLink to="/admin/cms/interviews" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <PanelsTopLeft size={16} /> <span className="whitespace-nowrap">Interviews</span>
                 </NavLink>
               </div>
             </>

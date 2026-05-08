@@ -321,19 +321,6 @@ function EarningCell({ placement }) {
   return (
     <div>
       <p className="font-semibold text-emerald-700">{formatMoney(placement.earningAmount || 0)}</p>
-      <p className="text-xs text-slate-500">
-        {placement.earningPercent || 0}% of {formatMoney(placement.offeredSalaryPM || 0)}
-      </p>
-      {placement.interviewDate ? (
-        <p className="text-xs text-slate-500">Interview: {format(new Date(placement.interviewDate), 'dd MMM yyyy')}</p>
-      ) : null}
-      {placement.earningStatus === 'paid' ? (
-        <p className="text-xs text-emerald-700">
-          Paid{placement.earningPaidDate ? ` on ${format(new Date(placement.earningPaidDate), 'dd MMM yyyy')}` : ''}
-        </p>
-      ) : (
-        <p className="text-xs text-amber-700">Payment pending</p>
-      )}
     </div>
   )
 }
