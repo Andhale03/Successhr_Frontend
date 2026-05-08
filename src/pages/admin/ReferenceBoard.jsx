@@ -713,6 +713,7 @@ export default function ReferenceBoard() {
                             <article
                               ref={dragProvided.innerRef}
                               {...dragProvided.draggableProps}
+                              {...dragProvided.dragHandleProps}
                               className={`rounded-lg border border-slate-200 bg-white p-3 shadow-sm ${
                                 animate ? 'slide-in ring-1 ring-cyan-200' : ''
                               }`}
@@ -739,15 +740,6 @@ export default function ReferenceBoard() {
                                   </button>
 
                                   {/* EDIT */}
-                                  <button
-                                    type="button"
-                                    onClick={() => openReference(reference, 'edit')}
-                                    className="inline-flex h-7 w-7 items-center justify-center rounded text-emerald-600 hover:bg-emerald-100"
-                                    title="Edit"
-                                  >
-                                    <Pencil className="h-4 w-4" />
-                                  </button>
-
                                   {/* MOVE UP */}
                                   <button
                                     type="button"
@@ -1362,39 +1354,33 @@ export default function ReferenceBoard() {
                 )}
               </section>
 
-              <section className="rounded-xl border border-slate-200 p-4">
-                <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Admin Controls</h3>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="text-sm font-semibold text-slate-700">
-                    Status
-                    <select
-                      value={activeRef.status}
-                      onChange={(event) => setActiveRef((current) => ({ ...current, status: event.target.value }))}
-                      disabled={isViewMode}
-                      className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
-                        isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
-                      }`}
-                    >
-                      <option value="not_viewed">Not Viewed</option>
-                      <option value="in_review">In Review</option>
-                      <option value="priority">Priority</option>
-                      <option value="done">Done</option>
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
-                    Admin Notes
-                    <textarea
-                      rows={3}
-                      value={activeRef.adminNotes || ''}
-                      onChange={(event) => setActiveRef((current) => ({ ...current, adminNotes: event.target.value }))}
-                      disabled={isViewMode}
-                      className={`mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 ${
-                        isViewMode ? 'bg-slate-100 cursor-not-allowed text-slate-500' : 'bg-white'
-                      }`}
-                    />
-                  </label>
-                </div>
-                { !isViewMode && (
+              {!isViewMode ? (
+                <section className="rounded-xl border border-slate-200 p-4">
+                  <h3 className="mb-3 text-sm font-bold uppercase text-slate-500">Admin Controls</h3>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <label className="text-sm font-semibold text-slate-700">
+                      Status
+                      <select
+                        value={activeRef.status}
+                        onChange={(event) => setActiveRef((current) => ({ ...current, status: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                      >
+                        <option value="not_viewed">Not Viewed</option>
+                        <option value="in_review">In Review</option>
+                        <option value="priority">Priority</option>
+                        <option value="done">Done</option>
+                      </select>
+                    </label>
+                    <label className="text-sm font-semibold text-slate-700 sm:col-span-2">
+                      Admin Notes
+                      <textarea
+                        rows={3}
+                        value={activeRef.adminNotes || ''}
+                        onChange={(event) => setActiveRef((current) => ({ ...current, adminNotes: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2"
+                      />
+                    </label>
+                  </div>
                   <button
                     type="button"
                     onClick={requestSaveMeta}
@@ -1404,8 +1390,8 @@ export default function ReferenceBoard() {
                     <Save className="h-4 w-4" />
                     {metaSaving ? 'Saving...' : 'Save'}
                   </button>
-                ) }
-              </section>
+                </section>
+              ) : null}
 
               {activeRef.type === 'student' && (
                 <section className="rounded-xl border border-slate-200 p-4">

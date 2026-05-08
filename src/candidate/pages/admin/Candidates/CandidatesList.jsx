@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Download, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { ConfirmDialog } from '../../../components/ActionDialogs'
+import CandidatePopup from './CandidatePopup'
 
 const csvCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`
 const storageKey = 'candidates'
@@ -26,6 +27,7 @@ export default function CandidatesList() {
   const [candidates, setCandidates] = useState([])
   const [search, setSearch] = useState('')
   const [deleting, setDeleting] = useState(null)
+  const [viewing, setViewing] = useState(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
 
@@ -297,7 +299,7 @@ export default function CandidatesList() {
                     <div className="flex justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => navigate(`/admin/cms/candidates/${candidate.id}`)}
+                        onClick={() => setViewing(candidate)}
                         className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-sky-600 hover:bg-sky-50"
                         aria-label="View candidate"
                       >
@@ -343,6 +345,17 @@ export default function CandidatesList() {
         danger
         onCancel={() => setDeleting(null)}
         onConfirm={handleDelete}
+      />
+
+      <CandidatePopup
+        open={Boolean(viewing)}
+        candidate={viewing}
+        onClose={() => setViewing(null)}
+        onEdit={() => {
+          const id = viewing?.id
+          setViewing(null)
+          if (id) navigate(`/admin/cms/candidates/${id}/edit`)
+        }}
       />
     </div>
   )

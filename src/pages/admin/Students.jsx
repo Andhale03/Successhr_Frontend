@@ -597,7 +597,7 @@ const [deletePrompt, setDeletePrompt] = useState({
   type="student"
   mode={drawerMode}
   onClose={() => setSelected(null)}
-  adminControls
+  adminControls={drawerMode === 'edit'}
   fullEdit={drawerMode === 'edit'}
   onItemChange={setSelected}
   onStatusChange={(status) =>
