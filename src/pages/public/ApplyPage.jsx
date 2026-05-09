@@ -115,7 +115,8 @@ export default function ApplyPage() {
       setDone({
         name: form.candidateName.trim(),
         mode: data.mode || (normalizedCode ? 'advisor' : 'cms'),
-        advisorName: advisor?.advisorName || ''
+        advisorName: advisor?.advisorName || '',
+        candidateCode: data.candidateCode || ''
       })
     } catch (error) {
       toast.error(error.response?.data?.message || 'Could not submit your application')
@@ -135,6 +136,7 @@ export default function ApplyPage() {
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Thank you {done.name}. {done.mode === 'advisor' ? 'Your application was sent to the advisor flow.' : 'Your application was sent directly to candidate management.'}
           </p>
+          {done.candidateCode ? <p className="mt-2 text-sm font-semibold text-sky-700">Your Candidate ID: {done.candidateCode}</p> : null}
         </section>
       </PublicShell>
     )

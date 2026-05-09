@@ -3,8 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import api from '../../../api/axios'
 
-const storageKey = 'candidates'
-
 const inputClass =
   'border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 w-full'
 
@@ -48,62 +46,112 @@ const emptyCandidate = () => ({
   interviews: [{ id: Date.now(), companyName: '', referencePerson: '', remark: '', date: '', status: 'Pending', baId: '', commissionPercent: '' }],
   successUpdate: {
     selected: false,
-    offerReceived: false,
-    offerReleased: false,
     joined: false,
-    notJoined: false,
+    notSelected: false,
     rejected: false,
-    withdrawn: false,
-    docsVerified: false,
-    bgvInitiated: false,
-    bgvDone: false,
-    trainingStarted: false,
-    confirmed: false,
-    relieved: false,
-    onHold: false,
-    blacklisted: false,
-    reApplied: false,
-    followUpPending: false,
-    refCheckDone: false,
-    salaryNegotiated: false,
-    caseClosed: false,
     finalJoiningDate: '',
     finalPackage: '',
     interviewerRemark: ''
   }
 })
 
-const loadCandidates = () => {
-  try {
-    const raw = localStorage.getItem(storageKey)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch (_error) {
-    return []
+const isMongoId = (value) => /^[a-fA-F0-9]{24}$/.test(String(value || ''))
+
+const mapInterviewToForm = (row, fallbackReference = '') => ({
+  id: row?._id || Date.now() + Math.random(),
+  companyName: row?.companyName || '',
+  referencePerson: row?.reference || fallbackReference || '',
+  remark: row?.remark || '',
+  date: row?.interviewDate ? String(row.interviewDate).slice(0, 10) : '',
+  status: row?.result || 'Pending',
+  baId: '',
+  commissionPercent: ''
+})
+
+const mapCmsToForm = (payload) => {
+  const base = emptyCandidate()
+  const candidate = payload?.candidate || {}
+  const referenceLabel =
+    candidate?.referenceName ||
+    candidate?.advisor?.name ||
+    (candidate?.intakeType === 'advisor' ? 'Advisor' : candidate?.intakeType === 'walkin' ? 'Walk-in' : '')
+  return {
+    ...base,
+    id: candidate?._id || null,
+    createdAt: candidate?.createdAt || '',
+    fullName: candidate?.fullName || '',
+    mobile: candidate?.mobileNumber || '',
+    aadhaarNo: candidate?.aadhaarNo || '',
+    email: candidate?.emailId || '',
+    dob: candidate?.dateOfBirth ? String(candidate.dateOfBirth).slice(0, 10) : '',
+    gender: candidate?.gender || '',
+    currentLocation: candidate?.currentAddress || '',
+    education: candidate?.education || '',
+    experience: candidate?.totalExperience ?? '',
+    currentSalary: candidate?.currentSalary || '',
+    expectedSalary: candidate?.expectedSalary || '',
+    noticePeriod: candidate?.noticePeriod || '',
+    jobType: candidate?.currentDesignation || '',
+    department: candidate?.interestedDepartment || candidate?.specialization || '',
+    preferredLocation: candidate?.preferredJobLocation || candidate?.preferredLocation || '',
+    skills: Array.isArray(candidate?.keySkills) ? candidate.keySkills : [],
+    languages: Array.isArray(candidate?.languagesKnown) ? candidate.languagesKnown : [],
+    referenceSource: referenceLabel,
+    additionalNotes: candidate?.careerSummary || '',
+    successUpdate: {
+      ...base.successUpdate,
+      selected: Boolean(candidate?.successRemarks?.selected?.checked),
+      joined: Boolean(candidate?.successRemarks?.joined?.checked),
+      notSelected: Boolean(candidate?.successRemarks?.notSelected?.checked),
+      rejected: Boolean(candidate?.successRemarks?.rejected?.checked),
+      finalJoiningDate: '',
+      finalPackage: '',
+      interviewerRemark: ''
+    },
+    interviews:
+      Array.isArray(payload?.interviews) && payload.interviews.length
+        ? payload.interviews.map((row) => mapInterviewToForm(row, referenceLabel))
+        : base.interviews
   }
 }
 
-const saveCandidates = (items) => {
-  localStorage.setItem(storageKey, JSON.stringify(items))
-}
+const toRemarkFlag = (checked) => ({ checked: Boolean(checked), updatedAt: new Date() })
 
-const generateCandidateId = (existing) => {
-  const now = new Date()
-  const yy = String(now.getFullYear()).slice(-2)
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  const prefix = `C${yy}${mm}`
+const mapFormToCms = (candidate) => ({
+  fullName: candidate.fullName || '',
+  mobileNumber: candidate.mobile || '',
+  aadhaarNo: candidate.aadhaarNo || '',
+  emailId: candidate.email || '',
+  dateOfBirth: candidate.dob || null,
+  gender: candidate.gender || undefined,
+  currentAddress: candidate.currentLocation || '',
+  education: candidate.education || '',
+  totalExperience: candidate.experience === '' ? undefined : Number(candidate.experience),
+  currentSalary: candidate.currentSalary || '',
+  expectedSalary: candidate.expectedSalary || '',
+  noticePeriod: candidate.noticePeriod || '',
+  currentDesignation: candidate.jobType || '',
+  interestedDepartment: candidate.department || '',
+  preferredJobLocation: candidate.preferredLocation || '',
+  keySkills: Array.isArray(candidate.skills) ? candidate.skills : [],
+  languagesKnown: Array.isArray(candidate.languages) ? candidate.languages : [],
+  referenceName: candidate.referenceSource || '',
+  careerSummary: candidate.additionalNotes || '',
+  successRemarks: {
+    selected: toRemarkFlag(candidate?.successUpdate?.selected),
+    joined: toRemarkFlag(candidate?.successUpdate?.joined),
+    notSelected: toRemarkFlag(candidate?.successUpdate?.notSelected),
+    rejected: toRemarkFlag(candidate?.successUpdate?.rejected)
+  }
+})
 
-  const current = Array.isArray(existing) ? existing : []
-  const maxSeq = current
-    .map((item) => String(item?.id || ''))
-    .filter((value) => value.startsWith(prefix) && value.length === prefix.length + 4)
-    .map((value) => Number(value.slice(-4)))
-    .filter((n) => Number.isFinite(n))
-    .reduce((max, n) => (n > max ? n : max), 0)
-
-  const nextSeq = String(maxSeq + 1).padStart(4, '0')
-  return `${prefix}${nextSeq}`
-}
+const mapFormInterviewToApi = (row) => ({
+  companyName: row?.companyName || '',
+  reference: row?.referencePerson || '',
+  interviewDate: row?.date || null,
+  remark: row?.remark || '',
+  result: row?.status || 'Pending'
+})
 
 const sanitizeInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
@@ -132,25 +180,9 @@ const remarkCards = [
 
 const successCards = [
   ['selected', 'Selected'],
-  ['offerReceived', 'Offer Received'],
-  ['offerReleased', 'Offer Released'],
   ['joined', 'Joined'],
-  ['notJoined', 'Not Joined'],
-  ['rejected', 'Rejected'],
-  ['withdrawn', 'Withdrawn'],
-  ['docsVerified', 'Docs Verified'],
-  ['bgvInitiated', 'BGV Initiated'],
-  ['bgvDone', 'BGV Done'],
-  ['trainingStarted', 'Training Started'],
-  ['confirmed', 'Confirmed'],
-  ['relieved', 'Relieved'],
-  ['onHold', 'On Hold'],
-  ['blacklisted', 'Blacklisted'],
-  ['reApplied', 'Re-applied'],
-  ['followUpPending', 'Follow Up Pending'],
-  ['refCheckDone', 'Ref Check Done'],
-  ['salaryNegotiated', 'Salary Negotiated'],
-  ['caseClosed', 'Case Closed']
+  ['notSelected', 'Not Selected'],
+  ['rejected', 'Rejected']
 ]
 
 function ToggleCard({ checked, label, onToggle, variant }) {
@@ -241,6 +273,8 @@ export default function AddCandidate() {
   const { id } = useParams()
 
   const isEdit = Boolean(id)
+  const [loading, setLoading] = useState(isEdit)
+  const [saving, setSaving] = useState(false)
   const [step, setStep] = useState(1)
   const [candidate, setCandidate] = useState(() => emptyCandidate())
   const [errors, setErrors] = useState({})
@@ -248,21 +282,18 @@ export default function AddCandidate() {
 
   useEffect(() => {
     if (!isEdit) return
-    const items = loadCandidates()
-    const found = items.find((c) => String(c.id) === String(id))
-    if (!found) {
-      toast.error('Candidate not found')
-      navigate('/admin/cms/candidates')
-      return
+    const loadCandidate = async () => {
+      try {
+        const { data } = await api.get(`/cms/candidates/${id}`)
+        setCandidate(mapCmsToForm(data))
+      } catch (_error) {
+        toast.error('Candidate not found')
+        navigate('/admin/cms/candidates')
+      } finally {
+        setLoading(false)
+      }
     }
-    const base = emptyCandidate()
-    setCandidate({
-      ...base,
-      ...found,
-      remarks: { ...base.remarks, ...(found.remarks || {}) },
-      successUpdate: { ...base.successUpdate, ...(found.successUpdate || {}) },
-      interviews: Array.isArray(found.interviews) && found.interviews.length ? found.interviews : base.interviews
-    })
+    loadCandidate()
   }, [id, isEdit, navigate])
 
   useEffect(() => {
@@ -279,10 +310,22 @@ export default function AddCandidate() {
   }, [])
 
   const progress = useMemo(() => `${(step / 4) * 100}%`, [step])
+  const successStatusKeys = useMemo(() => successCards.map(([key]) => key), [])
 
   const update = (key, value) => setCandidate((c) => ({ ...c, [key]: value }))
   const updateRemarks = (key, value) => setCandidate((c) => ({ ...c, remarks: { ...c.remarks, [key]: value } }))
-  const updateSuccess = (key, value) => setCandidate((c) => ({ ...c, successUpdate: { ...c.successUpdate, [key]: value } }))
+  const updateSuccess = (key, value) =>
+    setCandidate((c) => {
+      const next = { ...c.successUpdate }
+      if (value) {
+        successStatusKeys.forEach((statusKey) => {
+          next[statusKey] = statusKey === key
+        })
+      } else {
+        next[key] = false
+      }
+      return { ...c, successUpdate: next }
+    })
 
   const validateStep1 = () => {
     const nextErrors = {}
@@ -292,83 +335,55 @@ export default function AddCandidate() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const hasUniqueContact = () => {
-    const items = loadCandidates()
-    const selfId = isEdit ? String(id) : null
-
-    const mobile = String(candidate.mobile || '').trim()
-    const email = String(candidate.email || '').trim().toLowerCase()
-
-    const mobileTaken = mobile
-      ? items.some((c) => String(c.id) !== selfId && String(c.mobile || '').trim() === mobile)
-      : false
-    const emailTaken = email
-      ? items.some((c) => String(c.id) !== selfId && String(c.email || '').trim().toLowerCase() === email)
-      : false
-
-    if (mobileTaken) {
-      toast.error('Mobile number already exists')
-      return false
-    }
-    if (emailTaken) {
-      toast.error('Email already exists')
-      return false
-    }
-    return true
-  }
-
   const nextStep = () => {
     if (step === 1 && !validateStep1()) return
-    if (step === 1 && !hasUniqueContact()) return
     setStep((s) => Math.min(4, s + 1))
   }
 
   const prevStep = () => setStep((s) => Math.max(1, s - 1))
 
-  const save = () => {
+  const save = async () => {
     try {
-      const items = loadCandidates()
-      const selfId = isEdit ? String(id) : null
-      const mobile = String(candidate.mobile || '').trim()
-      const email = String(candidate.email || '').trim().toLowerCase()
-
-      if (
-        mobile &&
-        items.some((c) => String(c.id) !== selfId && String(c.mobile || '').trim() === mobile)
-      ) {
-        toast.error('Mobile number already exists')
-        return
-      }
-
-      if (
-        email &&
-        items.some((c) => String(c.id) !== selfId && String(c.email || '').trim().toLowerCase() === email)
-      ) {
-        toast.error('Email already exists')
-        return
-      }
+      setSaving(true)
+      const payload = mapFormToCms(candidate)
+      let candidateId = id
 
       if (isEdit) {
-        const next = items.map((c) =>
-          String(c.id) === String(id) ? { ...candidate, id: c.id, interviews: sanitizeInterviews(candidate.interviews) } : c
-        )
-        saveCandidates(next)
-        toast.success('✅ Candidate updated successfully!')
+        await api.put(`/cms/candidates/${id}`, payload)
       } else {
-        const record = {
-          ...candidate,
-          id: generateCandidateId(items),
-          createdAt: new Date().toISOString(),
-          interviews: sanitizeInterviews(candidate.interviews)
-        }
-        saveCandidates([record, ...items])
-        toast.success('✅ Candidate saved successfully!')
+        const { data } = await api.post('/cms/candidates', payload)
+        candidateId = data?._id
       }
+
+      const desiredRows = sanitizeInterviews(candidate.interviews)
+      const { data: existingRaw } = await api.get(`/cms/candidates/${candidateId}/interviews`)
+      const existingRows = Array.isArray(existingRaw) ? existingRaw : []
+      const desiredById = new Map(desiredRows.filter((row) => isMongoId(row.id)).map((row) => [String(row.id), row]))
+
+      await Promise.all(
+        existingRows.map((row) => {
+          const match = desiredById.get(String(row._id))
+          if (!match) return api.delete(`/cms/interviews/${row._id}`)
+          return api.put(`/cms/interviews/${row._id}`, mapFormInterviewToApi(match))
+        })
+      )
+
+      await Promise.all(
+        desiredRows
+          .filter((row) => !isMongoId(row.id))
+          .map((row) => api.post(`/cms/candidates/${candidateId}/interviews`, mapFormInterviewToApi(row)))
+      )
+
+      toast.success(isEdit ? 'Candidate updated successfully' : 'Candidate saved successfully')
       navigate('/admin/cms/candidates')
-    } catch (_error) {
-      toast.error('Could not save candidate')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not save candidate')
+    } finally {
+      setSaving(false)
     }
   }
+
+  if (loading) return <div className="rounded-xl bg-white p-5 text-sm text-slate-600">Loading candidate...</div>
 
   return (
     <div className="space-y-6">
@@ -717,11 +732,17 @@ export default function AddCandidate() {
             Next →
           </button>
         ) : (
-          <button type="button" onClick={save} className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600">
-            💾 Save
+          <button
+            type="button"
+            disabled={saving}
+            onClick={save}
+            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving ? 'Saving...' : 'Save'}
           </button>
         )}
       </div>
     </div>
   )
 }
+

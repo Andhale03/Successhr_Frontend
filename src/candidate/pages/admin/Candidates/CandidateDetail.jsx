@@ -1,17 +1,49 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import api from '../../../api/axios'
 
-const storageKey = 'candidates'
 const cardClass = 'bg-white rounded-xl shadow-sm border border-gray-100'
 
-const loadCandidates = () => {
-  try {
-    const raw = localStorage.getItem(storageKey)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch (_error) {
-    return []
+const mapInterviewToForm = (row) => ({
+  id: row?._id || Date.now() + Math.random(),
+  companyName: row?.companyName || '',
+  referencePerson: row?.reference || '',
+  remark: row?.remark || '',
+  date: row?.interviewDate ? String(row.interviewDate).slice(0, 10) : '',
+  status: row?.result || 'Pending'
+})
+
+const mapCmsToDetail = (payload) => {
+  const candidate = payload?.candidate || {}
+  return {
+    id: candidate?._id || '',
+    code: candidate?.candidateCode || '',
+    fullName: candidate?.fullName || '',
+    mobile: candidate?.mobileNumber || '',
+    aadhaarNo: candidate?.aadhaarNo || '',
+    email: candidate?.emailId || '',
+    dob: candidate?.dateOfBirth ? String(candidate.dateOfBirth).slice(0, 10) : '',
+    gender: candidate?.gender || '',
+    currentLocation: candidate?.currentAddress || '',
+    education: candidate?.education || '',
+    experience: candidate?.totalExperience ?? '',
+    currentSalary: candidate?.currentSalary || '',
+    expectedSalary: candidate?.expectedSalary || '',
+    noticePeriod: candidate?.noticePeriod || '',
+    jobType: candidate?.currentDesignation || '',
+    department: candidate?.interestedDepartment || candidate?.specialization || '',
+    preferredLocation: candidate?.preferredJobLocation || candidate?.preferredLocation || '',
+    skills: Array.isArray(candidate?.keySkills) ? candidate.keySkills : [],
+    languages: Array.isArray(candidate?.languagesKnown) ? candidate.languagesKnown : [],
+    referenceSource:
+      candidate?.referenceName ||
+      candidate?.advisor?.name ||
+      (candidate?.intakeType === 'advisor' ? 'Advisor' : candidate?.intakeType === 'walkin' ? 'Walk-in' : ''),
+    additionalNotes: candidate?.careerSummary || '',
+    remarks: payload?.remark?.checkboxes || {},
+    successUpdate: candidate?.successRemarks || {},
+    interviews: Array.isArray(payload?.interviews) ? payload.interviews.map(mapInterviewToForm) : []
   }
 }
 
@@ -111,20 +143,22 @@ export default function CandidateDetail() {
   const [candidate, setCandidate] = useState(null)
 
   useEffect(() => {
-    const items = loadCandidates()
-    const found = items.find((c) => String(c.id) === String(id))
-    if (!found) {
-      toast.error('Candidate not found')
-      navigate('/admin/cms/candidates')
-      return
+    const load = async () => {
+      try {
+        const { data } = await api.get(`/cms/candidates/${id}`)
+        setCandidate(mapCmsToDetail(data))
+      } catch (_error) {
+        toast.error('Candidate not found')
+        navigate('/admin/cms/candidates')
+      }
     }
-    setCandidate(found)
+    load()
   }, [id, navigate])
 
   const info = useMemo(() => {
     if (!candidate) return []
     return [
-      ['Candidate ID', candidate.id],
+      ['Candidate ID', candidate.code || candidate.id],
       ['Full Name', candidate.fullName],
       ['Mobile', candidate.mobile],
       ['Aadhaar Number', candidate.aadhaarNo],
@@ -188,7 +222,7 @@ export default function CandidateDetail() {
         <div className={`${cardClass} p-5 space-y-4`}>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             {remarkCards.map(([key, label]) => (
-              <ReadOnlyToggle key={key} checked={Boolean(candidate.remarks?.[key])} label={label} />
+              <ReadOnlyToggle key={key} checked={Boolean(candidate.remarks?.[key]?.checked)} label={label} />
             ))}
           </div>
           <div className="rounded-lg bg-slate-50 p-3">
@@ -242,7 +276,7 @@ export default function CandidateDetail() {
         <div className={`${cardClass} p-5 space-y-4`}>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             {successCards.map(([key, label]) => (
-              <ReadOnlyToggle key={key} variant="success" checked={Boolean(candidate.successUpdate?.[key])} label={label} />
+              <ReadOnlyToggle key={key} variant="success" checked={Boolean(candidate.successUpdate?.[key]?.checked)} label={label} />
             ))}
           </div>
           <div className="grid gap-4 md:grid-cols-2">

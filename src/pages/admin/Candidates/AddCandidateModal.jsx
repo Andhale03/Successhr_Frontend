@@ -93,11 +93,10 @@ export default function AddCandidateModal({ open, onClose }) {
     return true
   }
 
-  const submit = (e) => {
-    e.preventDefault()
-    if (!validate()) return
+    const submit = (e) => {
+      e.preventDefault()
+      if (!validate()) return
 
-    console.log(form, files)
     toast.success('Candidate added (connect API)')
     onClose()
   }

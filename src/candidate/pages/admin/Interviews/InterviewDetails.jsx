@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import toast from 'react-hot-toast'
+import api from '../../../api/axios'
 
-const storageKey = 'candidates'
 const cardClass = 'bg-white rounded-xl shadow-sm border border-gray-100'
-
-const loadCandidates = () => {
-  try {
-    const raw = localStorage.getItem(storageKey)
-    const parsed = raw ? JSON.parse(raw) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch (_error) {
-    return []
-  }
-}
 
 const visibleInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
@@ -36,14 +27,37 @@ export default function InterviewDetails() {
   const navigate = useNavigate()
   const { id } = useParams()
   const [candidate, setCandidate] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const items = loadCandidates()
-    const found = items.find((c) => String(c.id) === String(id))
-    setCandidate(found || null)
+    const load = async () => {
+      setLoading(true)
+      try {
+        const [{ data: candidateData }, { data: interviewData }] = await Promise.all([
+          api.get(`/cms/candidates/${id}`),
+          api.get(`/cms/candidates/${id}/interviews`)
+        ])
+
+        setCandidate({
+          ...candidateData,
+          interviews: Array.isArray(interviewData) ? interviewData : []
+        })
+      } catch (error) {
+        setCandidate(null)
+        toast.error(error.response?.data?.message || 'Could not load candidate interviews')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    load()
   }, [id])
 
   const interviews = useMemo(() => visibleInterviews(candidate?.interviews), [candidate])
+
+  if (loading) {
+    return <p className="text-sm text-slate-500">Loading interviews...</p>
+  }
 
   if (!candidate) {
     return (
@@ -58,20 +72,13 @@ export default function InterviewDetails() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div>
         <div>
           <button type="button" onClick={() => navigate('/admin/cms/interviews')} className="text-sm font-semibold text-sky-600 hover:text-sky-700">
             {'<- Interviews'}
           </button>
           <h1 className="mt-2 text-2xl font-bold text-slate-950">{candidate.fullName}</h1>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate(`/admin/cms/candidates/${candidate.id}`)}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
-        >
-          Open Candidate
-        </button>
       </div>
 
       <div className={`${cardClass} p-5`}>
@@ -89,7 +96,7 @@ export default function InterviewDetails() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {interviews.map((row, idx) => (
-                <tr key={row.id}>
+                <tr key={row._id || row.id || idx}>
                   <td className="px-4 py-3 text-slate-500">{idx + 1}</td>
                   <td className="px-4 py-3">{row.companyName || '-'}</td>
                   <td className="px-4 py-3">{row.referencePerson || '-'}</td>

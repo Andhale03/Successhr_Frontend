@@ -19,7 +19,7 @@ const selectionStatusColors = {
 }
 
 const selectionStatusLabel = {
-  shortlisted: 'Shortlisted',
+  shortlisted: 'Not Selected',
   selected: 'Selected',
   joined: 'Joined',
   rejected: 'Rejected',
@@ -49,6 +49,12 @@ const safeDate = (value, formatStr = 'yyyy-MM-dd') => {
 
 const csvCell = (value) =>
   `"${String(value ?? '').replace(/"/g, '""')}"`
+
+const numeric = (value) => {
+  const cleaned = String(value ?? '').replace(/[^0-9.]/g, '')
+  const parsed = Number(cleaned)
+  return Number.isFinite(parsed) ? parsed : 0
+}
 
 const buildCandidateSearchText = (candidate) => {
   const placement = candidate.placement || {}
@@ -104,6 +110,7 @@ export default function Students() {
   // NEW STATE
   const [drawerMode, setDrawerMode] = useState('view')
   const [saveConfirmOpen, setSaveConfirmOpen] = useState(false)
+  const [commissionDraft, setCommissionDraft] = useState({})
 
 const [deletePrompt, setDeletePrompt] = useState({
   open: false,
@@ -165,6 +172,62 @@ const [deletePrompt, setDeletePrompt] = useState({
     [placements]
   )
 
+  const commissionByStudentId = useMemo(
+    () =>
+      students.reduce((acc, student) => {
+        const placement = placementByStudentId.get(student._id)
+        const placementId = placement?._id
+        const draft = placementId ? commissionDraft[placementId] : null
+
+        const salary =
+          draft?.salary !== undefined
+            ? numeric(draft.salary)
+            : placement?.offeredSalaryPM !== undefined && placement?.offeredSalaryPM !== null
+              ? numeric(placement.offeredSalaryPM)
+              : numeric(student.currentSalary)
+
+        const percent =
+          draft?.percent !== undefined
+            ? numeric(draft.percent)
+            : placement?.earningPercent !== undefined && placement?.earningPercent !== null
+              ? numeric(placement.earningPercent)
+              : 0
+
+        const status = draft?.status || placement?.earningStatus || 'pending'
+
+        acc[student._id] = {
+          salary,
+          percent,
+          status,
+          amount: Number(((salary * percent) / 100).toFixed(2)),
+          placementId
+        }
+        return acc
+      }, {}),
+    [students, placementByStudentId, commissionDraft]
+  )
+
+  const saveCommission = async (studentId) => {
+    const data = commissionByStudentId[studentId]
+    if (!data?.placementId) {
+      toast.error('No placement found for this candidate')
+      return
+    }
+
+    try {
+      const payload = {
+        offeredSalaryPM: data.salary,
+        earningPercent: data.percent,
+        earningStatus: data.status === 'paid' ? 'paid' : 'pending'
+      }
+      const { data: updated } = await api.put(`/placements/${data.placementId}`, payload)
+      setPlacements((current) => current.map((item) => (item._id === data.placementId ? updated : item)))
+      toast.success('Commission updated')
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Could not update commission')
+    }
+  }
+
   const filtered = useMemo(() => {
     const search = filters.search.toLowerCase().trim()
 
@@ -176,7 +239,7 @@ const [deletePrompt, setDeletePrompt] = useState({
           ...student,
           placement,
           effectiveStatus:
-            placement?.selectionStatus || student.status
+            placement?.selectionStatus || student.selectionStatus || student.status
         }
       })
       .filter((student) =>
@@ -464,7 +527,7 @@ const [deletePrompt, setDeletePrompt] = useState({
                 <th className="px-5 py-3">Submitted By</th>
                 <th className="px-5 py-3">Date</th>
                 <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3">Next Process</th>
+                <th className="px-5 py-3">Commission</th>
                 <th className="px-5 py-3">Actions</th>
               </tr>
             </thead>
@@ -499,19 +562,19 @@ const [deletePrompt, setDeletePrompt] = useState({
                   </td>
 
                   <td className="px-5 py-3">
-                    {student.placement?.selectionStatus ? (
+                    {student.placement?.selectionStatus || student.selectionStatus ? (
                       <span
                         className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                           selectionStatusColors[
-                            student.placement.selectionStatus
+                            student.placement?.selectionStatus || student.selectionStatus
                           ] ||
                           selectionStatusColors.shortlisted
                         }`}
                       >
                         {selectionStatusLabel[
-                          student.placement.selectionStatus
+                          student.placement?.selectionStatus || student.selectionStatus
                         ] ||
-                          student.placement.selectionStatus}
+                          (student.placement?.selectionStatus || student.selectionStatus)}
                       </span>
                     ) : (
                       <StatusBadge status={student.status} />
@@ -519,12 +582,49 @@ const [deletePrompt, setDeletePrompt] = useState({
                   </td>
 
                   <td className="px-5 py-3 text-slate-600">
-                    {student.placement?.processStage
-                      ? processStageLabel[
-                          student.placement.processStage
-                        ] ||
-                        student.placement.processStage
-                      : '-'}
+                    {commissionByStudentId[student._id]?.placementId ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={commissionByStudentId[student._id].percent}
+                          onChange={(event) =>
+                            setCommissionDraft((current) => ({
+                              ...current,
+                              [commissionByStudentId[student._id].placementId]: {
+                                ...(current[commissionByStudentId[student._id].placementId] || {}),
+                                percent: event.target.value
+                              }
+                            }))
+                          }
+                          onBlur={() => saveCommission(student._id)}
+                          className="w-20 rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                          placeholder="%"
+                        />
+                        <select
+                          value={commissionByStudentId[student._id].status === 'paid' ? 'paid' : 'unpaid'}
+                          onChange={(event) => {
+                            setCommissionDraft((current) => ({
+                              ...current,
+                              [commissionByStudentId[student._id].placementId]: {
+                                ...(current[commissionByStudentId[student._id].placementId] || {}),
+                                status: event.target.value === 'paid' ? 'paid' : 'pending'
+                              }
+                            }))
+                            setTimeout(() => saveCommission(student._id), 0)
+                          }}
+                          className="rounded-lg border border-slate-300 px-2 py-1 text-xs"
+                        >
+                          <option value="unpaid">Unpaid</option>
+                          <option value="paid">Paid</option>
+                        </select>
+                        <span className="text-xs font-semibold text-slate-700">₹{commissionByStudentId[student._id].amount}</span>
+                      </div>
+                    ) : (
+                      '-'
+                    )}
                   </td>
 
                   <td className="px-5 py-3">
@@ -708,15 +808,10 @@ function Filters({
         className="rounded-lg border border-slate-300 px-3 py-2"
       >
         <option value="all">All Statuses</option>
-        <option value="not_viewed">Not Viewed</option>
-        <option value="in_review">In Review</option>
-        <option value="priority">Priority</option>
-        <option value="done">Done</option>
-        <option value="shortlisted">Shortlisted</option>
+        <option value="shortlisted">Not Selected</option>
         <option value="selected">Selected</option>
         <option value="joined">Joined</option>
         <option value="rejected">Rejected</option>
-        <option value="on_hold">On Hold</option>
       </select>
 
       <select

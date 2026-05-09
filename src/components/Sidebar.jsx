@@ -80,20 +80,20 @@ export default function Sidebar({ role, children }) {
                 <NavLink to="/admin/references" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
                   <PanelsTopLeft size={16} /> <span className="whitespace-nowrap">Dashboard</span>
                 </NavLink>
-                <NavLink to="/admin/students" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <UserCircle size={16} /> <span className="whitespace-nowrap">Advisor Candidates</span>
-                </NavLink>
-                <NavLink to="/admin/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
-                  <Building2 size={16} /> <span className="whitespace-nowrap">Advisor Companies</span>
-                </NavLink>
                 <NavLink
                   to="/admin/business-advisors"
                   end
                   className={({ isActive }) =>
-                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ml-4 ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
+                    `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`
                   }
                 >
                   <Users size={16} /> <span className="whitespace-nowrap">Advisor</span>
+                </NavLink>
+                <NavLink to="/admin/students" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <UserCircle size={16} /> <span className="whitespace-nowrap">Candidates</span>
+                </NavLink>
+                <NavLink to="/admin/companies" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${isActive ? 'bg-indigo-600' : 'hover:bg-slate-700'}`}>
+                  <Building2 size={16} /> <span className="whitespace-nowrap">Companies</span>
                 </NavLink>
               </div>
 
