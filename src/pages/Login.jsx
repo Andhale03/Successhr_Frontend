@@ -12,6 +12,12 @@ const schema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
+const InputIcon = ({ children }) => (
+  <span className="pointer-events-none absolute inset-y-0 left-0 flex w-11 items-center justify-center text-slate-400">
+    {children}
+  </span>
+)
+
 const routeFor = (role) => {
   if (role === 'superAdmin') return '/admin/references'
   if (role === 'candidateAdmin') return '/admin/cms/candidates'
@@ -49,9 +55,14 @@ export default function Login() {
   }
 
   return (
-    <div className="brand-page-bg flex min-h-screen items-center justify-center px-4 py-10">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-2xl border border-sky-100 bg-white shadow-2xl shadow-sky-900/10 lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="flex flex-col justify-between border-b border-sky-100 bg-white px-6 py-8 sm:px-10 lg:border-b-0 lg:border-r">
+    <div className="brand-page-bg relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-200/35 blur-3xl" />
+        <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-sky-300/35 blur-3xl" />
+      </div>
+
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200/70 bg-white/85 shadow-2xl shadow-sky-900/10 backdrop-blur lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="flex flex-col justify-between border-b border-slate-200/70 bg-white/70 px-6 py-8 sm:px-10 lg:border-b-0 lg:border-r">
           <div>
             <BrandLogo className="max-w-xl" />
             <div className="mt-8 max-w-lg">
@@ -62,8 +73,9 @@ export default function Login() {
               </p>
             </div>
           </div>
-          <div className="mt-8 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm font-semibold text-orange-800">
-            Your Success is Our Mission
+          <div className="mt-8 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 px-4 py-3 text-sm font-semibold text-slate-700">
+            <p className="text-xs font-bold uppercase tracking-wide text-sky-700">Tip</p>
+            <p className="mt-1">Use your official email to access the dashboard securely.</p>
           </div>
         </div>
 
@@ -82,23 +94,53 @@ export default function Login() {
 
           <label className="block text-sm font-semibold text-slate-700">
             Email
-            <input
-              type="email"
-              {...register('email')}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-              placeholder="admin@consultancy.com"
-            />
+            <div className="relative mt-1">
+              <InputIcon>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21.75 7.5v9a2.25 2.25 0 0 1-2.25 2.25H4.5A2.25 2.25 0 0 1 2.25 16.5v-9A2.25 2.25 0 0 1 4.5 5.25h15A2.25 2.25 0 0 1 21.75 7.5Z"
+                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m3 7 9 6 9-6" />
+                </svg>
+              </InputIcon>
+              <input
+                type="email"
+                {...register('email')}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pl-11 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-cyan-100"
+                placeholder="admin@consultancy.com"
+                autoComplete="email"
+              />
+            </div>
             {errors.email && <span className="mt-1 block text-xs text-rose-600">{errors.email.message}</span>}
           </label>
 
           <label className="block text-sm font-semibold text-slate-700">
             Password
-            <input
-              type="password"
-              {...register('password')}
-              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
-              placeholder="••••••••"
-            />
+            <div className="relative mt-1">
+              <InputIcon>
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.5 10.5V7.875a4.125 4.125 0 1 0-8.25 0V10.5"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6.75 10.5h10.5A1.875 1.875 0 0 1 19.125 12.375v6.375A1.875 1.875 0 0 1 17.25 20.625H6.75A1.875 1.875 0 0 1 4.875 18.75v-6.375A1.875 1.875 0 0 1 6.75 10.5Z"
+                  />
+                </svg>
+              </InputIcon>
+              <input
+                type="password"
+                {...register('password')}
+                className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 pl-11 text-slate-900 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-cyan-100"
+                placeholder="••••••••"
+                autoComplete="current-password"
+              />
+            </div>
             {errors.password && <span className="mt-1 block text-xs text-rose-600">{errors.password.message}</span>}
           </label>
 
@@ -107,7 +149,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="brand-button flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-sm font-semibold text-white shadow-lg shadow-sky-700/20 disabled:cursor-not-allowed disabled:opacity-70"
+            className="brand-button flex min-h-11 w-full items-center justify-center rounded-xl px-4 text-sm font-semibold text-white shadow-lg shadow-sky-700/20 transition hover:brightness-105 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading ? 'Signing in...' : 'Login'}
           </button>
