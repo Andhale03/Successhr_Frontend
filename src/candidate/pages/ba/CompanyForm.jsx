@@ -128,16 +128,16 @@ export default function CompanyForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(requestSubmit)} className="space-y-6">
+    <form onSubmit={handleSubmit(requestSubmit)} className="space-y-4 sm:space-y-6">
       <div>
         <Link to="/ba/companies" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           ← My Companies
         </Link>
-        <h1 className="text-2xl font-bold text-slate-950">Add Company Reference</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Add Company Reference</h1>
         <p className="mt-1 text-sm text-slate-500">Capture company details and manpower requirements.</p>
       </div>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Company Details</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="Company Name" required error={errors.companyName?.message} {...register('companyName')} />
@@ -149,7 +149,7 @@ export default function CompanyForm() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Job Requirements</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="Job Profile" {...register('jobProfile')} />
@@ -210,7 +210,7 @@ export default function CompanyForm() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">About Company</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="Manpower" {...register('manpower')} />
@@ -226,7 +226,7 @@ export default function CompanyForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
       >
         {submitting ? 'Submitting...' : 'Submit Reference'}
       </button>

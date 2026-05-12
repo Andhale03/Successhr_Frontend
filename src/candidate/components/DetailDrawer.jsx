@@ -144,7 +144,7 @@ export default function DetailDrawer({
     <div className="fixed inset-0 z-50">
       <button className="absolute inset-0 bg-slate-950/40" onClick={onClose} aria-label="Close details" />
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-3xl flex-col bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-start justify-between border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
           <div className="min-w-0">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <span
@@ -156,7 +156,7 @@ export default function DetailDrawer({
               </span>
               <StatusBadge status={item.status} />
             </div>
-            <h2 className="truncate text-xl font-bold text-slate-950">{title}</h2>
+            <h2 className="truncate text-lg font-bold text-slate-950 sm:text-xl">{title}</h2>
             <p className="text-sm text-slate-500">{subtitle}</p>
           </div>
           <button
@@ -169,7 +169,7 @@ export default function DetailDrawer({
           </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+        <div className="flex-1 space-y-5 overflow-y-auto px-4 py-4 sm:space-y-6 sm:px-5 sm:py-5">
           {type === 'student' ? (
             fullEdit ? (
               <>

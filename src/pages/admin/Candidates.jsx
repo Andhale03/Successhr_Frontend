@@ -326,7 +326,7 @@ export default function Candidates() {
   if (loading) return <Skeleton rows={9} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Header title="Candidates" subtitle="Search, filter, view, export, and delete Candidate references." onExport={exportCsv} />
       <Filters filters={filters} setFilters={setFilters} bas={bas} searchPlaceholder="Search candidate, mobile, BA name, email, job..." />
 
@@ -454,10 +454,10 @@ function Header({ title, subtitle, onExport }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">{title}</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">{title}</h1>
         <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       </div>
-      <button type="button" onClick={onExport} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600">
+      <button type="button" onClick={onExport} className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto">
         <Download className="h-4 w-4" />
         Export CSV
       </button>

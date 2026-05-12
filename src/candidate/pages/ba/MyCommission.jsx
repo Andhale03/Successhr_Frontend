@@ -97,9 +97,9 @@ export default function MyCommission() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">My Commission</h1>
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">My Commission</h1>
         <p className="mt-1 text-sm text-slate-500">Live view of placed candidates and your commission payouts.</p>
       </div>
 
@@ -159,10 +159,10 @@ export default function MyCommission() {
       {activePlacement && (
         <div className="fixed inset-0 z-50">
           <button className="absolute inset-0 bg-slate-950/45" onClick={() => setActivePlacement(null)} />
-          <div className="absolute left-1/2 top-1/2 w-[92vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl bg-white shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+          <div className="absolute left-1/2 top-1/2 max-h-[calc(100dvh-1.5rem)] w-[94vw] max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-900">{activePlacement.student?.candidateName || 'Placement'}</h2>
+                <h2 className="text-lg font-bold text-slate-900 sm:text-xl">{activePlacement.student?.candidateName || 'Placement'}</h2>
                 <p className="text-sm text-slate-500">{activePlacement.company?.companyName || 'Company'}</p>
               </div>
               <button
@@ -174,7 +174,7 @@ export default function MyCommission() {
               </button>
             </div>
 
-            <div className="grid gap-3 px-5 py-5 sm:grid-cols-2">
+            <div className="grid gap-3 px-4 py-4 sm:grid-cols-2 sm:px-5 sm:py-5">
               <Info label="Job Profile" value={activePlacement.jobProfile} />
               <Info label="Offered Salary" value={activePlacement.offeredSalary} />
               <Info
@@ -206,9 +206,9 @@ export default function MyCommission() {
 
 function SummaryCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
     </div>
   )
 }

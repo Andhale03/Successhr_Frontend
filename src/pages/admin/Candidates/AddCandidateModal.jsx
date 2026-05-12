@@ -102,10 +102,10 @@ export default function AddCandidateModal({ open, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-2 py-3 sm:px-4">
       <form
         onSubmit={submit}
-        className="w-full max-w-5xl max-h-[92vh] overflow-y-auto bg-white rounded-xl p-5 shadow-2xl"
+        className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:max-h-[92vh] sm:p-5"
       >
         {/* HEADER */}
         <div className="flex justify-between mb-5">

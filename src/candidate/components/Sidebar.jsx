@@ -25,27 +25,27 @@ export default function Sidebar({ role, children }) {
   }, [token])
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="flex min-h-screen min-w-0 bg-slate-100">
       {open && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setOpen(false)} />}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 transform bg-slate-800 text-white transition ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 max-w-[86vw] transform overflow-y-auto bg-slate-800 text-white transition ${
           open ? 'translate-x-0' : '-translate-x-full'
         } lg:static lg:translate-x-0`}
       >
-        <div className="flex items-center justify-between border-b border-slate-700 p-4">
-          <BrandLogo />
+        <div className="flex items-center justify-between border-b border-slate-700 p-3 sm:p-4">
+          <BrandLogo className="max-h-24" />
           {/* <button onClick={() => setOpen(false)} className="lg:hidden" aria-label="Close menu">
             <X />
           </button> */}
         </div>
 
-        <nav className="space-y-1 whitespace-nowrap p-3 overflow-x-hidden">
+        <nav className="space-y-1 overflow-x-hidden p-2 sm:p-3" onClick={() => setOpen(false)}>
           {isSuperAdmin ? (
             <>
               <div className="my-3 border-t border-slate-700" />
               <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wide text-slate-300 whitespace-nowrap">Candidate Management</p>
-              <div className="ml-6 mt-1 space-y-1">
+              <div className="ml-2 mt-1 space-y-1 sm:ml-6">
                 <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm">
                   <UserCheck size={16} /> <span className="whitespace-nowrap">Candidates</span>
                 </div>
@@ -79,9 +79,9 @@ export default function Sidebar({ role, children }) {
         </nav>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar onMenuClick={() => setOpen(true)} />
-        <main className="flex-1 overflow-y-auto p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto px-3 py-4 sm:p-5 lg:p-6">{children}</main>
       </div>
     </div>
   )

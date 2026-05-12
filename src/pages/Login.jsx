@@ -55,19 +55,19 @@ export default function Login() {
   }
 
   return (
-    <div className="brand-page-bg relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-10">
+    <div className="brand-page-bg relative flex min-h-screen items-center justify-center overflow-hidden px-3 py-6 sm:px-4 sm:py-10">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-cyan-200/35 blur-3xl" />
         <div className="absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-sky-300/35 blur-3xl" />
       </div>
 
-      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200/70 bg-white/85 shadow-2xl shadow-sky-900/10 backdrop-blur lg:grid-cols-[1.08fr_0.92fr]">
-        <div className="flex flex-col justify-between border-b border-slate-200/70 bg-white/70 px-6 py-8 sm:px-10 lg:border-b-0 lg:border-r">
+      <div className="relative grid w-full max-w-5xl overflow-hidden rounded-2xl border border-slate-200/70 bg-white/85 shadow-2xl shadow-sky-900/10 backdrop-blur sm:rounded-3xl lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="flex flex-col justify-between border-b border-slate-200/70 bg-white/70 px-4 py-6 sm:px-10 sm:py-8 lg:border-b-0 lg:border-r">
           <div>
-            <BrandLogo className="max-w-xl" />
-            <div className="mt-8 max-w-lg">
+            <BrandLogo className="max-w-xs sm:max-w-xl" />
+            <div className="mt-6 max-w-lg sm:mt-8">
               <p className="text-sm font-bold uppercase text-sky-700">HR consultancy workspace</p>
-              <h1 className="mt-3 text-3xl font-bold text-slate-950 sm:text-4xl">Welcome back</h1>
+              <h1 className="mt-3 text-2xl font-bold text-slate-950 sm:text-4xl">Welcome back</h1>
               <p className="mt-3 text-base text-slate-600">
                 Manage Business Advisors, candidate references, and company requirements from one clean Success HR dashboard.
               </p>
@@ -79,7 +79,7 @@ export default function Login() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-6 py-8 sm:px-10 lg:py-12">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 px-4 py-6 sm:px-10 sm:py-8 lg:py-12">
           <div>
             <div className="mb-4 flex items-center gap-3 lg:hidden">
               <BrandLogo compact />
@@ -88,7 +88,7 @@ export default function Login() {
                 <p className="text-xs font-semibold text-sky-700">Secure login</p>
               </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-950">Login</h2>
+            <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">Login</h2>
             <p className="mt-1 text-sm text-slate-500">Enter your account details to continue.</p>
           </div>
 

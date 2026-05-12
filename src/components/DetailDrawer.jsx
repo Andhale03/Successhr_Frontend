@@ -142,14 +142,14 @@ export default function DetailDrawer({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <button
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Close details"
       />
-      <aside className="relative flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
-        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
+      <aside className="relative flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
+        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <div className="mb-3 flex flex-wrap items-center gap-2">
@@ -162,7 +162,7 @@ export default function DetailDrawer({
                 </span>
                 <StatusBadge status={item.status} />
               </div>
-              <h2 className="truncate text-2xl font-bold text-slate-950">{title}</h2>
+              <h2 className="truncate text-xl font-bold text-slate-950 sm:text-2xl">{title}</h2>
               <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                 <span>{subtitle}</span>
                 {updatedAt ? (
@@ -184,7 +184,7 @@ export default function DetailDrawer({
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5">
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
           {type === 'student' ? (
             fullEdit ? (
               <>

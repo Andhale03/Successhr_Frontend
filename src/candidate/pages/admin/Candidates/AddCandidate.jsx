@@ -1,268 +1,246 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { BriefcaseBusiness, ClipboardList, MapPin, Plus, Save, Trash2, UserRound, Users } from 'lucide-react'
 import api from '../../../api/axios'
+import {
+  PERSONALITY_RATING_FIELDS,
+  PROFESSIONAL_RATING_FIELDS,
+  QUESTION_CHOICES,
+  RATING_VALUES,
+  calculateQuestionMarksResult,
+  emptyCandidateForm,
+  emptyInterviewRow,
+  emptyQuestionRow,
+  interviewHasContent,
+  isMongoId,
+  mapApiToCandidateForm,
+  mapCandidateFormToApi,
+  mapFormInterviewToApi,
+  normalizeQuestionMarks,
+  sanitizeInterviews,
+  toggleSelection
+} from './candidateFormModel'
 
 const inputClass =
-  'border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 w-full'
-
-const cardClass = 'bg-white rounded-xl shadow-sm border border-gray-100'
-
-const emptyCandidate = () => ({
-  id: null,
-  createdAt: '',
-  fullName: '',
-  mobile: '',
-  aadhaarNo: '',
-  email: '',
-  dob: '',
-  gender: '',
-  currentLocation: '',
-  education: '',
-  experience: '',
-  currentSalary: '',
-  expectedSalary: '',
-  noticePeriod: '',
-  jobType: '',
-  department: '',
-  preferredLocation: '',
-  skills: [],
-  languages: [],
-  referenceSource: '',
-  additionalNotes: '',
-  remarks: {
-    verified: false,
-    active: false,
-    priority: false,
-    blacklisted: false,
-    experienced: false,
-    fresher: false,
-    available: false,
-    onHold: false,
-    shortlisted: false,
-    caseClosed: false,
-    remarkNote: ''
-  },
-  interviews: [{ id: Date.now(), companyName: '', referencePerson: '', remark: '', date: '', status: 'Pending', baId: '', commissionPercent: '' }],
-  successUpdate: {
-    selected: false,
-    joined: false,
-    notSelected: false,
-    rejected: false,
-    finalJoiningDate: '',
-    finalPackage: '',
-    interviewerRemark: ''
-  }
-})
-
-const isMongoId = (value) => /^[a-fA-F0-9]{24}$/.test(String(value || ''))
-
-const mapInterviewToForm = (row, fallbackReference = '') => ({
-  id: row?._id || Date.now() + Math.random(),
-  companyName: row?.companyName || '',
-  referencePerson: row?.reference || fallbackReference || '',
-  remark: row?.remark || '',
-  date: row?.interviewDate ? String(row.interviewDate).slice(0, 10) : '',
-  status: row?.result || 'Pending',
-  baId: '',
-  commissionPercent: ''
-})
-
-const mapCmsToForm = (payload) => {
-  const base = emptyCandidate()
-  const candidate = payload?.candidate || {}
-  const referenceLabel =
-    candidate?.referenceName ||
-    candidate?.advisor?.name ||
-    (candidate?.intakeType === 'advisor' ? 'Advisor' : candidate?.intakeType === 'walkin' ? 'Walk-in' : '')
-  return {
-    ...base,
-    id: candidate?._id || null,
-    createdAt: candidate?.createdAt || '',
-    fullName: candidate?.fullName || '',
-    mobile: candidate?.mobileNumber || '',
-    aadhaarNo: candidate?.aadhaarNo || '',
-    email: candidate?.emailId || '',
-    dob: candidate?.dateOfBirth ? String(candidate.dateOfBirth).slice(0, 10) : '',
-    gender: candidate?.gender || '',
-    currentLocation: candidate?.currentAddress || '',
-    education: candidate?.education || '',
-    experience: candidate?.totalExperience ?? '',
-    currentSalary: candidate?.currentSalary || '',
-    expectedSalary: candidate?.expectedSalary || '',
-    noticePeriod: candidate?.noticePeriod || '',
-    jobType: candidate?.currentDesignation || '',
-    department: candidate?.interestedDepartment || candidate?.specialization || '',
-    preferredLocation: candidate?.preferredJobLocation || candidate?.preferredLocation || '',
-    skills: Array.isArray(candidate?.keySkills) ? candidate.keySkills : [],
-    languages: Array.isArray(candidate?.languagesKnown) ? candidate.languagesKnown : [],
-    referenceSource: referenceLabel,
-    additionalNotes: candidate?.careerSummary || '',
-    successUpdate: {
-      ...base.successUpdate,
-      selected: Boolean(candidate?.successRemarks?.selected?.checked),
-      joined: Boolean(candidate?.successRemarks?.joined?.checked),
-      notSelected: Boolean(candidate?.successRemarks?.notSelected?.checked),
-      rejected: Boolean(candidate?.successRemarks?.rejected?.checked),
-      finalJoiningDate: '',
-      finalPackage: '',
-      interviewerRemark: ''
-    },
-    interviews:
-      Array.isArray(payload?.interviews) && payload.interviews.length
-        ? payload.interviews.map((row) => mapInterviewToForm(row, referenceLabel))
-        : base.interviews
-  }
+  'mt-1 h-11 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100'
+const textAreaClass =
+  'mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100'
+const labelClass = 'text-sm font-semibold text-slate-700'
+const cardClass = 'rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5'
+const editablePanels = new Set(['details', 'assessment', 'interviews'])
+const panelFromSearch = (searchParams) => {
+  const panel = searchParams.get('panel')
+  return editablePanels.has(panel) ? panel : 'details'
 }
 
-const toRemarkFlag = (checked) => ({ checked: Boolean(checked), updatedAt: new Date() })
-
-const mapFormToCms = (candidate) => ({
-  fullName: candidate.fullName || '',
-  mobileNumber: candidate.mobile || '',
-  aadhaarNo: candidate.aadhaarNo || '',
-  emailId: candidate.email || '',
-  dateOfBirth: candidate.dob || null,
-  gender: candidate.gender || undefined,
-  currentAddress: candidate.currentLocation || '',
-  education: candidate.education || '',
-  totalExperience: candidate.experience === '' ? undefined : Number(candidate.experience),
-  currentSalary: candidate.currentSalary || '',
-  expectedSalary: candidate.expectedSalary || '',
-  noticePeriod: candidate.noticePeriod || '',
-  currentDesignation: candidate.jobType || '',
-  interestedDepartment: candidate.department || '',
-  preferredJobLocation: candidate.preferredLocation || '',
-  keySkills: Array.isArray(candidate.skills) ? candidate.skills : [],
-  languagesKnown: Array.isArray(candidate.languages) ? candidate.languages : [],
-  referenceName: candidate.referenceSource || '',
-  careerSummary: candidate.additionalNotes || '',
-  successRemarks: {
-    selected: toRemarkFlag(candidate?.successUpdate?.selected),
-    joined: toRemarkFlag(candidate?.successUpdate?.joined),
-    notSelected: toRemarkFlag(candidate?.successUpdate?.notSelected),
-    rejected: toRemarkFlag(candidate?.successUpdate?.rejected)
-  }
-})
-
-const mapFormInterviewToApi = (row) => ({
-  companyName: row?.companyName || '',
-  reference: row?.referencePerson || '',
-  interviewDate: row?.date || null,
-  remark: row?.remark || '',
-  result: row?.status || 'Pending'
-})
-
-const sanitizeInterviews = (rows) =>
-  (Array.isArray(rows) ? rows : []).filter((row) => {
-    const hasContent = Boolean(
-      String(row?.companyName || '').trim() ||
-        String(row?.referencePerson || '').trim() ||
-        String(row?.remark || '').trim() ||
-        String(row?.date || '').trim()
-    )
-    const status = row?.status || 'Pending'
-    return hasContent || status !== 'Pending'
-  })
-
-const remarkCards = [
-  ['verified', 'Verified'],
-  ['active', 'Active'],
-  ['priority', 'Priority'],
-  ['blacklisted', 'Blacklisted'],
-  ['experienced', 'Experienced'],
-  ['fresher', 'Fresher'],
-  ['available', 'Available'],
-  ['onHold', 'On Hold'],
-  ['shortlisted', 'Shortlisted'],
-  ['caseClosed', 'Case Closed']
-]
-
-const successCards = [
-  ['selected', 'Selected'],
-  ['joined', 'Joined'],
-  ['notSelected', 'Not Selected'],
-  ['rejected', 'Rejected']
-]
-
-function ToggleCard({ checked, label, onToggle, variant }) {
-  const base = 'cursor-pointer select-none rounded-lg border px-3 py-2 text-sm font-semibold transition'
-  const styles =
-    variant === 'success'
-      ? checked
-        ? 'border-green-500 bg-green-50 text-green-800'
-        : 'border-[#e2e6f0] bg-gray-50 text-slate-700 hover:bg-white'
-      : checked
-        ? 'border-indigo-500 bg-purple-50 text-indigo-600'
-        : 'border-[#e2e6f0] bg-gray-50 text-slate-700 hover:bg-white'
-
+function Section({ title, icon: Icon, children }) {
   return (
-    <button type="button" onClick={onToggle} className={`${base} ${styles}`}>
+    <section className={`${cardClass} space-y-5`}>
+      <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+        {Icon ? (
+          <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 ring-1 ring-indigo-100">
+            <Icon className="h-4 w-4" />
+          </span>
+        ) : null}
+        <h2 className="text-base font-bold text-slate-950">{title}</h2>
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function Field({ label, required, error, className = '', children }) {
+  return (
+    <label className={`${labelClass} ${className}`}>
+      <span>
+        {label}
+        {required ? <span className="text-rose-600"> *</span> : null}
+      </span>
+      {children}
+      {error ? <p className="mt-1 text-xs font-semibold text-rose-600">{error}</p> : null}
+    </label>
+  )
+}
+
+function FieldGroup({ title, icon: Icon, children }) {
+  return (
+    <div className="space-y-3">
+      <h3 className="flex items-center gap-2 text-sm font-bold text-slate-900">
+        {Icon ? <Icon className="h-4 w-4 text-indigo-500" /> : null}
+        {title}
+      </h3>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{children}</div>
+    </div>
+  )
+}
+
+function FormTabButton({ active, label, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-lg px-4 py-3 text-sm font-semibold ${
+        active ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50'
+      }`}
+    >
       {label}
     </button>
   )
 }
 
-function StepTab({ index, title, active, completed, onClick }) {
-  const circle = completed
-    ? 'bg-green-500 text-white'
-    : active
-      ? 'bg-indigo-600 text-white'
-      : 'bg-slate-100 text-slate-700'
-
+function RatingGrid({ title, fields, ratings, onToggle }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex flex-1 items-center gap-2 border-b-2 pb-3 text-left ${
-        active ? 'border-indigo-600' : 'border-transparent'
-      }`}
-    >
-      <span className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold ${circle}`}>{index}</span>
-      <span className="text-sm font-semibold text-slate-800">{title}</span>
-    </button>
+    <div className="overflow-hidden rounded-xl border border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+        <p className="mt-1 text-xs text-slate-500">Rate following parameters: 1 lowest and 5 highest</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-sm">
+          <thead className="bg-white text-left text-xs uppercase text-slate-500">
+            <tr>
+              <th className="w-14 px-4 py-3">Sr.</th>
+              <th className="min-w-56 px-4 py-3">Parameters</th>
+              {RATING_VALUES.map((value) => (
+                <th key={value} className="w-16 px-4 py-3 text-center">
+                  {value}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {fields.map((field, index) => {
+              const selected = ratings?.[field.key] || []
+              return (
+                <tr key={field.key} className="odd:bg-white even:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-500">{index + 1}</td>
+                  <td className="px-4 py-3 font-semibold text-slate-800">{field.label}</td>
+                  {RATING_VALUES.map((value) => (
+                    <td key={value} className="px-4 py-3 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selected.some((item) => Number(item) === value)}
+                        onChange={() => onToggle(field.key, value)}
+                        className="h-4 w-4 rounded border-slate-300 text-indigo-600"
+                        aria-label={`${field.label} ${value}`}
+                      />
+                    </td>
+                  ))}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 
-function TagInput({ value, onChange, placeholder }) {
-  const [draft, setDraft] = useState('')
-
-  const addTag = (raw) => {
-    const tag = String(raw || '').trim()
-    if (!tag) return
-    if (value.includes(tag)) return
-    onChange([...value, tag])
-  }
-
-  const onKeyDown = (event) => {
-    if (event.key === 'Enter' || event.key === ',') {
-      event.preventDefault()
-      addTag(draft)
-      setDraft('')
-    }
-    if (event.key === 'Backspace' && !draft && value.length) {
-      onChange(value.slice(0, -1))
-    }
-  }
+function QuestionMarksResultTable({ questions, onMarksChange }) {
+  const result = calculateQuestionMarksResult(questions, { preserveRows: true })
 
   return (
-    <div className="rounded-lg border border-gray-200 px-3 py-2">
-      <div className="flex flex-wrap gap-2">
-        {value.map((tag) => (
-          <span key={tag} className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-sky-100">
-            {tag}
-            <button type="button" className="text-slate-500 hover:text-slate-700" onClick={() => onChange(value.filter((t) => t !== tag))}>
-              ×
-            </button>
-          </span>
+    <div className="overflow-x-auto rounded-xl border border-slate-900 bg-white">
+      <table className="min-w-[1200px] border-collapse text-center text-sm text-slate-950">
+        <tbody>
+          <tr>
+            <th className="w-28 border border-slate-900 px-3 py-3 text-lg font-bold">IQ</th>
+            {result.scores.map((_score, index) => (
+              <th key={index} className="w-16 border border-slate-900 px-3 py-3 text-lg font-bold">
+                {index + 1}
+              </th>
+            ))}
+            <th className="w-28 border border-slate-900 px-3 py-3 text-lg font-bold">TQ</th>
+          </tr>
+          <tr>
+            <th className="border border-slate-900 px-3 py-3 text-lg font-bold">Marks</th>
+            {result.rows.map((row, index) => (
+              <td key={index} className="h-12 border border-slate-900 p-0 font-semibold">
+                <input
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="1"
+                  value={row.marks || ''}
+                  onChange={(event) => onMarksChange(index, event.target.value)}
+                  className="h-12 w-full border-0 bg-transparent text-center text-sm font-semibold text-slate-950 outline-none focus:bg-indigo-50 focus:ring-0"
+                  aria-label={`Question ${index + 1} marks`}
+                />
+              </td>
+            ))}
+            <td className="relative h-12 border border-slate-900 px-3 py-3 align-bottom font-bold">
+              <span className="absolute inset-0 bg-[linear-gradient(to_bottom_right,transparent_49%,#0f172a_50%,transparent_51%)]" />
+              <span className="relative z-10">
+                {result.total}/{result.maxTotal}
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function InterviewQuestionsForm({ candidateName, questions, onQuestionChange, onChoiceToggle, onAddQuestion }) {
+  return (
+    <div className="rounded-xl border-2 border-slate-900 bg-white p-4 sm:p-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+        <p className="shrink-0 text-base font-bold text-slate-950 sm:text-lg">Candidate Name -</p>
+        <div className="min-h-9 flex-1 border-b-2 border-slate-900 px-2 py-1 text-sm font-semibold text-slate-900 sm:text-base">
+          {candidateName || ''}
+        </div>
+      </div>
+
+      <div className="mt-7 text-center">
+        <span className="inline-flex bg-slate-950 px-2 py-1 text-base font-bold text-white sm:text-lg">Interview Questions</span>
+      </div>
+
+      <div className="mt-5 flex justify-end">
+        <button
+          type="button"
+          onClick={onAddQuestion}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add Question
+        </button>
+      </div>
+
+      <div className="mt-6 space-y-3">
+        {(questions || []).map((row, index) => (
+          <div key={index} className="grid gap-2 md:grid-cols-[44px_minmax(0,1fr)_180px] md:items-center">
+            <div className="text-sm font-bold text-slate-950 sm:text-base">{index + 1}.</div>
+            <input
+              value={row.question || ''}
+              onChange={(event) => onQuestionChange(index, event.target.value)}
+              className="h-10 min-w-0 border-0 border-b-2 border-slate-900 bg-transparent px-1 text-sm font-semibold text-slate-900 outline-none focus:border-indigo-500 focus:ring-0"
+              aria-label={`Interview question ${index + 1}`}
+            />
+            <div className="grid grid-cols-3 overflow-hidden border border-slate-900">
+              {QUESTION_CHOICES.map((choice) => {
+                const checked = (row.choices || []).includes(choice)
+                return (
+                  <label
+                    key={choice}
+                    className={`flex h-9 cursor-pointer items-center justify-center gap-2 border-r border-slate-900 text-sm font-bold last:border-r-0 ${
+                      checked ? 'bg-indigo-50 text-indigo-700' : 'bg-white text-slate-950'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => onChoiceToggle(index, choice)}
+                      className="h-4 w-4 rounded border-slate-400 text-indigo-600"
+                      aria-label={`Question ${index + 1} option ${choice}`}
+                    />
+                    {choice}
+                  </label>
+                )
+              })}
+            </div>
+          </div>
         ))}
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={onKeyDown}
-          placeholder={placeholder}
-          className="min-w-[160px] flex-1 border-0 p-0 text-sm outline-none"
-        />
       </div>
     </div>
   )
@@ -271,28 +249,35 @@ function TagInput({ value, onChange, placeholder }) {
 export default function AddCandidate() {
   const navigate = useNavigate()
   const { id } = useParams()
-
+  const [searchParams] = useSearchParams()
   const isEdit = Boolean(id)
+
+  const [candidate, setCandidate] = useState(() => emptyCandidateForm())
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
-  const [step, setStep] = useState(1)
-  const [candidate, setCandidate] = useState(() => emptyCandidate())
   const [errors, setErrors] = useState({})
   const [businessAdvisors, setBusinessAdvisors] = useState([])
+  const [activePanel, setActivePanel] = useState(() => (isEdit ? panelFromSearch(searchParams) : 'details'))
+
+  useEffect(() => {
+    setActivePanel(isEdit ? panelFromSearch(searchParams) : 'details')
+  }, [isEdit, searchParams])
 
   useEffect(() => {
     if (!isEdit) return
+
     const loadCandidate = async () => {
       try {
         const { data } = await api.get(`/cms/candidates/${id}`)
-        setCandidate(mapCmsToForm(data))
-      } catch (_error) {
-        toast.error('Candidate not found')
+        setCandidate(mapApiToCandidateForm(data))
+      } catch (error) {
+        toast.error(error.response?.data?.message || 'Candidate not found')
         navigate('/admin/cms/candidates')
       } finally {
         setLoading(false)
       }
     }
+
     loadCandidate()
   }, [id, isEdit, navigate])
 
@@ -309,43 +294,128 @@ export default function AddCandidate() {
     loadAdvisors()
   }, [])
 
-  const progress = useMemo(() => `${(step / 4) * 100}%`, [step])
-  const successStatusKeys = useMemo(() => successCards.map(([key]) => key), [])
+  const update = (key, value) => setCandidate((current) => ({ ...current, [key]: value }))
 
-  const update = (key, value) => setCandidate((c) => ({ ...c, [key]: value }))
-  const updateRemarks = (key, value) => setCandidate((c) => ({ ...c, remarks: { ...c.remarks, [key]: value } }))
-  const updateSuccess = (key, value) =>
-    setCandidate((c) => {
-      const next = { ...c.successUpdate }
-      if (value) {
-        successStatusKeys.forEach((statusKey) => {
-          next[statusKey] = statusKey === key
-        })
-      } else {
-        next[key] = false
+  const updateMeta = (key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      formMeta: { ...current.formMeta, [key]: value }
+    }))
+
+  const updateFamily = (key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      familyDetails: { ...current.familyDetails, [key]: value }
+    }))
+
+  const updateInterviewForm = (key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      interviewForm: { ...current.interviewForm, [key]: value }
+    }))
+
+  const toggleRating = (bucket, key, value) =>
+    setCandidate((current) => ({
+      ...current,
+      interviewForm: {
+        ...current.interviewForm,
+        [bucket]: {
+          ...current.interviewForm[bucket],
+          [key]: toggleSelection(current.interviewForm[bucket]?.[key], value, RATING_VALUES)
+        }
       }
-      return { ...c, successUpdate: next }
+    }))
+
+  const updateQuestion = (index, question) =>
+    setCandidate((current) => {
+      const questions = [...(current.interviewForm.questions || [])]
+      questions[index] = {
+        ...(questions[index] || { choices: [] }),
+        question
+      }
+
+      return {
+        ...current,
+        interviewForm: {
+          ...current.interviewForm,
+          questions
+        }
+      }
     })
 
-  const validateStep1 = () => {
+  const toggleQuestionChoice = (index, choice) =>
+    setCandidate((current) => {
+      const questions = [...(current.interviewForm.questions || [])]
+      const row = questions[index] || { question: '', choices: [] }
+      questions[index] = {
+        ...row,
+        choices: toggleSelection(row.choices, choice, QUESTION_CHOICES)
+      }
+
+      return {
+        ...current,
+        interviewForm: {
+          ...current.interviewForm,
+          questions
+        }
+      }
+    })
+
+  const updateQuestionMarks = (index, marks) =>
+    setCandidate((current) => {
+      const questions = [...(current.interviewForm.questions || [])]
+      questions[index] = {
+        ...(questions[index] || { question: '', choices: [] }),
+        marks: normalizeQuestionMarks(marks)
+      }
+
+      return {
+        ...current,
+        interviewForm: {
+          ...current.interviewForm,
+          questions
+        }
+      }
+    })
+
+  const addQuestion = () =>
+    setCandidate((current) => ({
+      ...current,
+      interviewForm: {
+        ...current.interviewForm,
+        questions: [...(current.interviewForm.questions || []), emptyQuestionRow()]
+      }
+    }))
+
+  const updateInterview = (rowId, patch) =>
+    setCandidate((current) => ({
+      ...current,
+      interviews: current.interviews.map((row) => (row.id === rowId ? { ...row, ...patch } : row))
+    }))
+
+  const validate = () => {
     const nextErrors = {}
-    if (!candidate.fullName.trim()) nextErrors.fullName = 'Full Name is required'
-    if (!candidate.mobile.trim()) nextErrors.mobile = 'Mobile is required'
+    if (!candidate.fullName.trim()) nextErrors.fullName = 'Candidate name is required'
+    if (!candidate.mobile.trim()) nextErrors.mobile = 'Mobile number is required'
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
 
-  const nextStep = () => {
-    if (step === 1 && !validateStep1()) return
-    setStep((s) => Math.min(4, s + 1))
-  }
-
-  const prevStep = () => setStep((s) => Math.max(1, s - 1))
-
   const save = async () => {
+    if (!validate()) {
+      toast.error('Please fill required candidate details')
+      return
+    }
+
+    const incompleteInterview = candidate.interviews.find((row) => interviewHasContent(row) && !String(row.companyName || '').trim())
+    if (incompleteInterview) {
+      toast.error('Company name is required for interview rows')
+      return
+    }
+
     try {
       setSaving(true)
-      const payload = mapFormToCms(candidate)
+      const payload = mapCandidateFormToApi(candidate)
       let candidateId = id
 
       if (isEdit) {
@@ -383,366 +453,312 @@ export default function AddCandidate() {
     }
   }
 
-  if (loading) return <div className="rounded-xl bg-white p-5 text-sm text-slate-600">Loading candidate...</div>
+  if (loading) return <div className={cardClass}>Loading candidate...</div>
 
   return (
-    <div className="space-y-6">
-      <div className="h-1 w-full overflow-hidden rounded-full bg-slate-100">
-        <div className="h-1 bg-gradient-to-r from-indigo-500 to-sky-400" style={{ width: progress }} />
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
-        <StepTab index={1} title="Candidate Info" active={step === 1} completed={step > 1} onClick={() => setStep(1)} />
-        <StepTab index={2} title="Info of Success" active={step === 2} completed={step > 2} onClick={() => setStep(2)} />
-        <StepTab index={3} title="Interview Companies" active={step === 3} completed={step > 3} onClick={() => setStep(3)} />
-        <StepTab index={4} title="Success Update" active={step === 4} completed={false} onClick={() => setStep(4)} />
-      </div>
-
-      {step === 1 ? (
-        <div className={`${cardClass} p-5 space-y-6`}>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">Form 1 of 4 - Personal and professional details</div>
-
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold uppercase text-slate-500">Personal Details</h3>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div>
-                <input
-                  className={`${inputClass} ${errors.fullName ? 'border-rose-400' : ''}`}
-                  value={candidate.fullName}
-                  onChange={(e) => update('fullName', e.target.value)}
-                  placeholder="Full Name*"
-                />
-                {errors.fullName ? <p className="mt-1 text-xs font-semibold text-rose-600">{errors.fullName}</p> : null}
-              </div>
-              <div>
-                <input
-                  className={`${inputClass} ${errors.mobile ? 'border-rose-400' : ''}`}
-                  value={candidate.mobile}
-                  onChange={(e) => update('mobile', e.target.value)}
-                  placeholder="Mobile*"
-                />
-                {errors.mobile ? <p className="mt-1 text-xs font-semibold text-rose-600">{errors.mobile}</p> : null}
-              </div>
-              <input className={inputClass} value={candidate.email} onChange={(e) => update('email', e.target.value)} placeholder="Email" />
-            </div>
-            <div className="grid gap-3 md:grid-cols-3">
-              <input className={inputClass} value={candidate.aadhaarNo} onChange={(e) => update('aadhaarNo', e.target.value)} placeholder="Aadhaar Number" />
-              <input className={inputClass} type="date" value={candidate.dob} onChange={(e) => update('dob', e.target.value)} />
-              <select className={inputClass} value={candidate.gender} onChange={(e) => update('gender', e.target.value)}>
-                <option value="">Gender</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            <input className={inputClass} value={candidate.currentLocation} onChange={(e) => update('currentLocation', e.target.value)} placeholder="Current Location" />
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold uppercase text-slate-500">Professional Details</h3>
-            <div className="grid gap-3 md:grid-cols-4">
-              <input className={inputClass} value={candidate.education} onChange={(e) => update('education', e.target.value)} placeholder="Education" />
-              <input className={inputClass} value={candidate.experience} onChange={(e) => update('experience', e.target.value)} placeholder="Experience (yrs)" />
-              <input className={inputClass} value={candidate.currentSalary} onChange={(e) => update('currentSalary', e.target.value)} placeholder="Current Salary" />
-              <input className={inputClass} value={candidate.expectedSalary} onChange={(e) => update('expectedSalary', e.target.value)} placeholder="Expected Salary" />
-            </div>
-            <div className="grid gap-3 md:grid-cols-4">
-              <input className={inputClass} value={candidate.noticePeriod} onChange={(e) => update('noticePeriod', e.target.value)} placeholder="Notice Period" />
-              <input className={inputClass} value={candidate.jobType} onChange={(e) => update('jobType', e.target.value)} placeholder="Job Type" />
-              <input className={inputClass} value={candidate.department} onChange={(e) => update('department', e.target.value)} placeholder="Department" />
-              <input className={inputClass} value={candidate.preferredLocation} onChange={(e) => update('preferredLocation', e.target.value)} placeholder="Preferred Location" />
-            </div>
-            <div>
-              <TagInput value={candidate.skills} onChange={(skills) => update('skills', skills)} placeholder="Skills (type and press Enter)" />
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <input
-                className={inputClass}
-                value={(candidate.languages || []).join(', ')}
-                onChange={(e) =>
-                  update(
-                    'languages',
-                    String(e.target.value || '')
-                      .split(',')
-                      .map((v) => v.trim())
-                      .filter(Boolean)
-                  )
-                }
-                placeholder="Languages Known (comma separated)"
-              />
-              <input className={inputClass} value={candidate.referenceSource} onChange={(e) => update('referenceSource', e.target.value)} placeholder="Reference Source" />
-            </div>
-          </section>
-
-          <section className="space-y-3">
-            <h3 className="text-sm font-bold uppercase text-slate-500">Additional Notes</h3>
-            <textarea
-              className={inputClass}
-              rows={4}
-              value={candidate.additionalNotes}
-              onChange={(e) => update('additionalNotes', e.target.value)}
-              placeholder="Additional Notes"
-            />
-          </section>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <button type="button" onClick={() => navigate('/admin/cms/candidates')} className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+            {'<- Candidates'}
+          </button>
+          <h1 className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h1>
+          {candidate.candidateCode ? <p className="mt-1 text-sm font-semibold text-slate-500">Candidate ID: {candidate.candidateCode}</p> : null}
         </div>
-      ) : null}
-
-      {step === 2 ? (
-        <div className={`${cardClass} p-5 space-y-6`}>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">Form 2 of 4 - Tag candidate current status</div>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-            {remarkCards.map(([key, label]) => (
-              <ToggleCard key={key} checked={Boolean(candidate.remarks?.[key])} label={label} onToggle={() => updateRemarks(key, !candidate.remarks?.[key])} />
-            ))}
-          </div>
-          <textarea
-            className={inputClass}
-            rows={4}
-            value={candidate.remarks.remarkNote}
-            onChange={(e) => updateRemarks('remarkNote', e.target.value)}
-            placeholder="Additional Remark"
-          />
-        </div>
-      ) : null}
-
-      {step === 3 ? (
-        <div className={`${cardClass} p-5 space-y-4`}>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">Form 3 of 4 - Companies this candidate was sent to</div>
-
-          <div className="overflow-x-auto rounded-xl border border-gray-100">
-            <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
-                <tr>
-                  <th className="px-4 py-3">#</th>
-                  <th className="px-4 py-3">Company Name</th>
-                  <th className="px-4 py-3">Reference Person</th>
-                  <th className="px-4 py-3">Remark</th>
-                  <th className="px-4 py-3">Date</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Delete</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 bg-white">
-                {candidate.interviews.map((row, idx) => (
-                  <tr key={row.id}>
-                    <td className="px-4 py-2 text-slate-500">{idx + 1}</td>
-                    <td className="px-4 py-2">
-                      <input
-                        className={inputClass}
-                        value={row.companyName}
-                        onChange={(e) =>
-                          setCandidate((c) => ({
-                            ...c,
-                            interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, companyName: e.target.value } : r))
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <div className="space-y-2">
-                        <select
-                          className={inputClass}
-                          value={row.baId || ''}
-                          onChange={(e) => {
-                            const baId = e.target.value
-                            const profile = businessAdvisors.find((p) => String(p.userId?._id || p.userId) === String(baId))
-                            const name = profile?.userId?.name || profile?.fullName || ''
-                            const carriedPercent = profile?.commissionPercent ?? profile?.earningPercent ?? profile?.commissionRate ?? ''
-
-                            setCandidate((c) => ({
-                              ...c,
-                              interviews: c.interviews.map((r) =>
-                                r.id === row.id
-                                  ? {
-                                      ...r,
-                                      baId: baId || '',
-                                      referencePerson: baId ? name : r.referencePerson,
-                                      commissionPercent: baId ? String(carriedPercent ?? '') : r.commissionPercent
-                                    }
-                                  : r
-                              )
-                            }))
-                          }}
-                        >
-                          <option value="">Select Advisor (optional)</option>
-                          {businessAdvisors.map((profile) => {
-                            const baId = profile.userId?._id || profile.userId
-                            const label = profile.userId?.name || profile.fullName || profile.userId?.email || 'Advisor'
-                            if (!baId) return null
-                            return (
-                              <option key={baId} value={baId}>
-                                {label}
-                              </option>
-                            )
-                          })}
-                        </select>
-
-                        <input
-                          className={inputClass}
-                          value={row.referencePerson}
-                          onChange={(e) =>
-                            setCandidate((c) => ({
-                              ...c,
-                              interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, referencePerson: e.target.value } : r))
-                            }))
-                          }
-                          placeholder="Reference person name (optional)"
-                        />
-
-                        <input
-                          className={inputClass}
-                          value={row.commissionPercent || ''}
-                          onChange={(e) =>
-                            setCandidate((c) => ({
-                              ...c,
-                              interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, commissionPercent: e.target.value } : r))
-                            }))
-                          }
-                          placeholder="Commission % (optional)"
-                        />
-                      </div>
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        className={inputClass}
-                        value={row.remark}
-                        onChange={(e) =>
-                          setCandidate((c) => ({
-                            ...c,
-                            interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, remark: e.target.value } : r))
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <input
-                        className={inputClass}
-                        type="date"
-                        value={row.date}
-                        onChange={(e) =>
-                          setCandidate((c) => ({
-                            ...c,
-                            interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, date: e.target.value } : r))
-                          }))
-                        }
-                      />
-                    </td>
-                    <td className="px-4 py-2">
-                      <select
-                        className={inputClass}
-                        value={row.status}
-                        onChange={(e) =>
-                          setCandidate((c) => ({
-                            ...c,
-                            interviews: c.interviews.map((r) => (r.id === row.id ? { ...r, status: e.target.value } : r))
-                          }))
-                        }
-                      >
-                        <option value="Pending">Pending</option>
-                        <option value="Selected">Selected</option>
-                        <option value="Rejected">Rejected</option>
-                      </select>
-                    </td>
-                    <td className="px-4 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setCandidate((c) => ({ ...c, interviews: c.interviews.filter((r) => r.id !== row.id) }))}
-                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
-                        aria-label="Delete row"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button
             type="button"
-            onClick={() =>
-              setCandidate((c) => ({
-                ...c,
-                interviews: [
-                  ...c.interviews,
-                  { id: Date.now(), companyName: '', referencePerson: '', remark: '', date: '', status: 'Pending', baId: '', commissionPercent: '' }
-                ]
-              }))
-            }
-            className="w-full rounded-xl border border-dashed border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            onClick={() => navigate('/admin/cms/candidates')}
+            className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
-            + Add Another Company
+            Cancel
           </button>
-        </div>
-      ) : null}
-
-      {step === 4 ? (
-        <div className={`${cardClass} p-5 space-y-6`}>
-          <div className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">Form 4 of 4 - Final placement outcome</div>
-          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
-            {successCards.map(([key, label]) => (
-              <ToggleCard
-                key={key}
-                variant="success"
-                checked={Boolean(candidate.successUpdate?.[key])}
-                label={label}
-                onToggle={() => updateSuccess(key, !candidate.successUpdate?.[key])}
-              />
-            ))}
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <input
-              className={inputClass}
-              type="date"
-              value={candidate.successUpdate.finalJoiningDate}
-              onChange={(e) => updateSuccess('finalJoiningDate', e.target.value)}
-              placeholder="Final Joining Date"
-            />
-            <input
-              className={inputClass}
-              value={candidate.successUpdate.finalPackage}
-              onChange={(e) => updateSuccess('finalPackage', e.target.value)}
-              placeholder="Final Package (₹)"
-            />
-          </div>
-
-          <textarea
-            className={inputClass}
-            rows={4}
-            value={candidate.successUpdate.interviewerRemark}
-            onChange={(e) => updateSuccess('interviewerRemark', e.target.value)}
-            placeholder="Interviewer Final Remark"
-          />
-        </div>
-      ) : null}
-
-      <div className="flex items-center justify-between">
-        {step > 1 ? (
-          <button type="button" onClick={prevStep} className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-            ← Back
-          </button>
-        ) : (
-          <div />
-        )}
-
-        {step < 4 ? (
-          <button type="button" onClick={nextStep} className="rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
-            Next →
-          </button>
-        ) : (
           <button
             type="button"
             disabled={saving}
             onClick={save}
-            className="rounded-lg bg-orange-500 px-5 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {saving ? 'Saving...' : 'Save'}
+            <Save className="h-4 w-4" />
+            {saving ? 'Saving...' : 'Save Candidate'}
           </button>
-        )}
+        </div>
+      </div>
+
+      {isEdit ? (
+        <div className="flex flex-wrap gap-2">
+          <FormTabButton active={activePanel === 'details'} label="Details" onClick={() => setActivePanel('details')} />
+          <FormTabButton active={activePanel === 'assessment'} label="Assessment" onClick={() => setActivePanel('assessment')} />
+          <FormTabButton active={activePanel === 'interviews'} label="Company Interviews" onClick={() => setActivePanel('interviews')} />
+        </div>
+      ) : null}
+
+      {!isEdit || activePanel === 'details' ? (
+        <>
+          <Section title="Receipt Details">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Field label="Day">
+                <input className={inputClass} value={candidate.formMeta.day} onChange={(event) => updateMeta('day', event.target.value)} />
+              </Field>
+              <Field label="Receipt No">
+                <input className={inputClass} value={candidate.formMeta.receiptNo} onChange={(event) => updateMeta('receiptNo', event.target.value)} />
+              </Field>
+              <Field label="RC / WRC">
+                <input className={inputClass} value={candidate.formMeta.rcWrc} onChange={(event) => updateMeta('rcWrc', event.target.value)} />
+              </Field>
+              <Field label="Date">
+                <input className={inputClass} type="date" value={candidate.formMeta.date} onChange={(event) => updateMeta('date', event.target.value)} />
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Candidate Details">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <Field label="Candidate Name" required error={errors.fullName}>
+                <input
+                  className={`${inputClass} ${errors.fullName ? 'border-rose-400' : ''}`}
+                  value={candidate.fullName}
+                  onChange={(event) => update('fullName', event.target.value)}
+                />
+              </Field>
+              <Field label="College Name">
+                <input className={inputClass} value={candidate.collegeName} onChange={(event) => update('collegeName', event.target.value)} />
+              </Field>
+              <Field label="Mobile No" required error={errors.mobile}>
+                <input
+                  className={`${inputClass} ${errors.mobile ? 'border-rose-400' : ''}`}
+                  value={candidate.mobile}
+                  onChange={(event) => update('mobile', event.target.value)}
+                />
+              </Field>
+              <Field label="WhatsApp No">
+                <input className={inputClass} value={candidate.whatsappNo} onChange={(event) => update('whatsappNo', event.target.value)} />
+              </Field>
+              <Field label="Email ID">
+                <input className={inputClass} type="email" value={candidate.email} onChange={(event) => update('email', event.target.value)} />
+              </Field>
+              <Field label="Education">
+                <input className={inputClass} value={candidate.education} onChange={(event) => update('education', event.target.value)} />
+              </Field>
+              <Field label="Applied For">
+                <input className={inputClass} value={candidate.appliedFor} onChange={(event) => update('appliedFor', event.target.value)} />
+              </Field>
+              <Field label="Preferred Job Location">
+                <input className={inputClass} value={candidate.preferredJobLocation} onChange={(event) => update('preferredJobLocation', event.target.value)} />
+              </Field>
+              <Field label="Experience (Years)">
+                <input className={inputClass} type="number" min="0" step="0.1" value={candidate.totalExperience} onChange={(event) => update('totalExperience', event.target.value)} />
+              </Field>
+              <Field label="Experience Department">
+                <input className={inputClass} value={candidate.experienceDepartment} onChange={(event) => update('experienceDepartment', event.target.value)} />
+              </Field>
+              <Field label="Current Salary">
+                <input className={inputClass} value={candidate.currentSalary} onChange={(event) => update('currentSalary', event.target.value)} />
+              </Field>
+              <Field label="Expected Salary">
+                <input className={inputClass} value={candidate.expectedSalary} onChange={(event) => update('expectedSalary', event.target.value)} />
+              </Field>
+              <Field label="Notice Period">
+                <input className={inputClass} value={candidate.noticePeriod} onChange={(event) => update('noticePeriod', event.target.value)} />
+              </Field>
+              <Field label="Current Job Location">
+                <input className={inputClass} value={candidate.currentJobLocation} onChange={(event) => update('currentJobLocation', event.target.value)} />
+              </Field>
+              <Field label="Reason Of Job Change">
+                <input className={inputClass} value={candidate.reasonForJobChange} onChange={(event) => update('reasonForJobChange', event.target.value)} />
+              </Field>
+            </div>
+          </Section>
+
+          <Section title="Family Details">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Occupation Of Father">
+                <input className={inputClass} value={candidate.familyDetails.fatherOccupation} onChange={(event) => updateFamily('fatherOccupation', event.target.value)} />
+              </Field>
+              <Field label="Occupation Of Mother">
+                <input className={inputClass} value={candidate.familyDetails.motherOccupation} onChange={(event) => updateFamily('motherOccupation', event.target.value)} />
+              </Field>
+              <Field label="Occupation Of Brother">
+                <input className={inputClass} value={candidate.familyDetails.brotherOccupation} onChange={(event) => updateFamily('brotherOccupation', event.target.value)} />
+              </Field>
+              <Field label="Occupation Of Sister">
+                <input className={inputClass} value={candidate.familyDetails.sisterOccupation} onChange={(event) => updateFamily('sisterOccupation', event.target.value)} />
+              </Field>
+              <Field label="What is your Goal / Aim?">
+                <textarea className={textAreaClass} rows={4} value={candidate.goalAim} onChange={(event) => update('goalAim', event.target.value)} />
+              </Field>
+            </div>
+          </Section>
+        </>
+      ) : null}
+
+      {isEdit && activePanel === 'assessment' ? (
+        <Section title="Interview Form">
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Suitable Industry">
+              <input className={inputClass} value={candidate.interviewForm.suitableIndustry} onChange={(event) => updateInterviewForm('suitableIndustry', event.target.value)} />
+            </Field>
+            <Field label="Suitable Department">
+              <input className={inputClass} value={candidate.interviewForm.suitableDepartment} onChange={(event) => updateInterviewForm('suitableDepartment', event.target.value)} />
+            </Field>
+            <Field label="HR Interviewer">
+              <input className={inputClass} value={candidate.interviewForm.hrInterviewer} onChange={(event) => updateInterviewForm('hrInterviewer', event.target.value)} />
+            </Field>
+            <Field label="Remark">
+              <input className={inputClass} value={candidate.interviewForm.remark} onChange={(event) => updateInterviewForm('remark', event.target.value)} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            <RatingGrid
+              title="Professional Assessment"
+              fields={PROFESSIONAL_RATING_FIELDS}
+              ratings={candidate.interviewForm.professionalRatings}
+              onToggle={(key, value) => toggleRating('professionalRatings', key, value)}
+            />
+            <RatingGrid
+              title="Personality Assessment"
+              fields={PERSONALITY_RATING_FIELDS}
+              ratings={candidate.interviewForm.personalityRatings}
+              onToggle={(key, value) => toggleRating('personalityRatings', key, value)}
+            />
+          </div>
+
+          <InterviewQuestionsForm
+            candidateName={candidate.fullName}
+            questions={candidate.interviewForm.questions}
+            onQuestionChange={updateQuestion}
+            onChoiceToggle={toggleQuestionChoice}
+            onAddQuestion={addQuestion}
+          />
+          <QuestionMarksResultTable questions={candidate.interviewForm.questions} onMarksChange={updateQuestionMarks} />
+        </Section>
+      ) : null}
+
+      {isEdit && activePanel === 'interviews' ? (
+        <Section title="Company Interviews">
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-sm">
+            <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+              <tr>
+                <th className="w-14 px-4 py-3">#</th>
+                <th className="min-w-56 px-4 py-3">Company Name</th>
+                <th className="min-w-72 px-4 py-3">Reference Person</th>
+                <th className="min-w-52 px-4 py-3">Remark</th>
+                <th className="min-w-44 px-4 py-3">Date</th>
+                <th className="min-w-44 px-4 py-3">Status</th>
+                <th className="w-20 px-4 py-3">Delete</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {candidate.interviews.map((row, index) => (
+                <tr key={row.id} className="odd:bg-white even:bg-slate-50">
+                  <td className="px-4 py-3 text-slate-500">{index + 1}</td>
+                  <td className="px-4 py-3">
+                    <input className={inputClass} value={row.companyName} onChange={(event) => updateInterview(row.id, { companyName: event.target.value })} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="space-y-2">
+                      <select
+                        className={inputClass}
+                        value={row.baId || ''}
+                        onChange={(event) => {
+                          const baId = event.target.value
+                          const profile = businessAdvisors.find((item) => String(item.userId?._id || item.userId) === String(baId))
+                          const name = profile?.userId?.name || profile?.fullName || ''
+                          const percent = profile?.commissionPercent ?? profile?.earningPercent ?? profile?.commissionRate ?? ''
+                          updateInterview(row.id, {
+                            baId,
+                            referencePerson: baId ? name : row.referencePerson,
+                            commissionPercent: baId ? String(percent ?? '') : row.commissionPercent
+                          })
+                        }}
+                      >
+                        <option value="">Select Advisor (optional)</option>
+                        {businessAdvisors.map((profile) => {
+                          const baId = profile.userId?._id || profile.userId
+                          const label = profile.userId?.name || profile.fullName || profile.userId?.email || 'Advisor'
+                          if (!baId) return null
+                          return (
+                            <option key={baId} value={baId}>
+                              {label}
+                            </option>
+                          )
+                        })}
+                      </select>
+                      <input
+                        className={inputClass}
+                        value={row.referencePerson}
+                        onChange={(event) => updateInterview(row.id, { referencePerson: event.target.value })}
+                        placeholder="Reference person name"
+                      />
+                      <input
+                        className={inputClass}
+                        value={row.commissionPercent || ''}
+                        onChange={(event) => updateInterview(row.id, { commissionPercent: event.target.value })}
+                        placeholder="Commission %"
+                      />
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <input className={inputClass} value={row.remark} onChange={(event) => updateInterview(row.id, { remark: event.target.value })} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <input className={inputClass} type="date" value={row.date} onChange={(event) => updateInterview(row.id, { date: event.target.value })} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <select className={inputClass} value={row.status} onChange={(event) => updateInterview(row.id, { status: event.target.value })}>
+                      <option value="Pending">Pending</option>
+                      <option value="Selected">Selected</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="On Hold">On Hold</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    <button
+                      type="button"
+                      onClick={() => setCandidate((current) => ({ ...current, interviews: current.interviews.filter((item) => item.id !== row.id) }))}
+                      className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"
+                      aria-label="Delete interview row"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setCandidate((current) => ({ ...current, interviews: [...current.interviews, emptyInterviewRow()] }))}
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        >
+          <Plus className="h-4 w-4" />
+          Add Another Company
+        </button>
+        </Section>
+      ) : null}
+
+      <div className="flex flex-col justify-end gap-2 sm:flex-row">
+        <button
+          type="button"
+          onClick={() => navigate('/admin/cms/candidates')}
+          className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          disabled={saving}
+          onClick={save}
+          className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+        >
+          <Save className="h-4 w-4" />
+          {saving ? 'Saving...' : 'Save Candidate'}
+        </button>
       </div>
     </div>
   )
 }
-

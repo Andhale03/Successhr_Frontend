@@ -76,16 +76,16 @@ export default function CandidateForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(submit)} className="space-y-6">
+    <form onSubmit={handleSubmit(submit)} className="space-y-4 sm:space-y-6">
       <div>
         <Link to="/ba/candidates" className="text-sm font-semibold text-indigo-600 hover:text-indigo-700">
           ← My Candidates
         </Link>
-        <h1 className="text-2xl font-bold text-slate-950">Add Candidate Reference</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Add Candidate Reference</h1>
         <p className="mt-1 text-sm text-slate-500">Submit candidate details and professional context.</p>
       </div>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Candidate Details</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {candidateFields.map(([name, label, required]) => (
@@ -94,7 +94,7 @@ export default function CandidateForm() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Professional Details</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Input label="Education" {...register('education')} />
@@ -124,7 +124,7 @@ export default function CandidateForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
       >
         {submitting ? 'Submitting...' : 'Submit Reference'}
       </button>

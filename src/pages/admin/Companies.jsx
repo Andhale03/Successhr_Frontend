@@ -230,9 +230,9 @@ const [deletePrompt, setDeletePrompt] = useState({
   if (loading) return <Skeleton rows={9} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">
           Companies
         </h1>
 

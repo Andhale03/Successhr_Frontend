@@ -305,9 +305,9 @@ export default function CommissionProcessPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Process Stage & Salary Panel</h1>
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Process Stage & Salary Panel</h1>
         <p className="mt-1 text-sm text-slate-500">
           Super admin can update selected/joined stage, salary, commission percent, and payment status from one panel.
         </p>
@@ -529,7 +529,7 @@ function ProcessEditModal({ open, placement, form, companies, onChange, onClose,
   )
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
@@ -541,12 +541,12 @@ function ProcessEditModal({ open, placement, form, companies, onChange, onClose,
           event.preventDefault()
           onSave()
         }}
-        className="relative flex h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in"
+        className="relative flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 animate-in sm:h-[95vh] sm:rounded-3xl"
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 bg-slate-50 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 sm:gap-4 sm:px-5 sm:py-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-wide text-indigo-600">Process Update Form</p>
-            <h2 className="mt-1 text-xl font-bold text-slate-950">
+            <h2 className="mt-1 text-lg font-bold text-slate-950 sm:text-xl">
               {placement.studentId?.candidateName || 'Candidate Process'}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
@@ -563,7 +563,7 @@ function ProcessEditModal({ open, placement, form, companies, onChange, onClose,
           </button>
         </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:space-y-5 sm:px-5 sm:py-5">
           <div className="grid gap-3 md:grid-cols-3">
             <SummaryBox label="Candidate" value={placement.studentId?.candidateName || '-'} detail={placement.studentId?.mobileNumber} />
             <SummaryBox label="Business Advisor" value={placement.baId?.name || '-'} detail={placement.baId?.email} />
@@ -736,17 +736,17 @@ function ProcessEditModal({ open, placement, form, companies, onChange, onClose,
           </section>
         </div>
 
-        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-2 border-t border-slate-200 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:px-5 sm:py-4">
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            className="inline-flex min-h-10 w-full items-center justify-center rounded-lg border border-slate-300 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 sm:w-auto"
           >
             <Save className="h-4 w-4" />
             Save Process
@@ -800,9 +800,9 @@ function FormTextarea({ label, value, onChange }) {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:text-2xl">{value}</p>
     </div>
   )
 }

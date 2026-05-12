@@ -98,17 +98,17 @@ export default function CandidatesList() {
   if (loading) return <Skeleton rows={10} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-950">Candidates</h1>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Candidates</h1>
           <p className="mt-1 text-sm text-slate-500">Candidate Management System</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <button
             type="button"
             onClick={exportCsv}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -116,7 +116,7 @@ export default function CandidatesList() {
           <button
             type="button"
             onClick={() => navigate('/admin/cms/candidates/new')}
-            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+            className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
           >
             <Plus className="h-4 w-4" />
             Add Candidate

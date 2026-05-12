@@ -209,17 +209,17 @@ export default function Companies() {
   if (loading) return <Skeleton rows={10} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-slate-900">My Companies</h1>
+          <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">My Companies</h1>
           <span className="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
             {companies.length}
           </span>
         </div>
         <Link
           to="/ba/companies/new"
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+          className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 sm:w-auto"
         >
           Add Company
         </Link>
@@ -327,9 +327,9 @@ export default function Companies() {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
     </div>
   )
 }

@@ -26,9 +26,9 @@ export default function MyReferences() {
   if (loading) return <Skeleton rows={8} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">My References</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">My References</h1>
         <p className="mt-1 text-sm text-slate-500">Track submitted candidates and companies.</p>
       </div>
 

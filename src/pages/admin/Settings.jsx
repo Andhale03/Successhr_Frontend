@@ -112,13 +112,13 @@ export default function AdminSettings() {
   if (loading) return <Skeleton rows={8} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">{authUser?.role === 'businessAdvisor' ? 'BA Settings' : 'Admin Settings'}</h1>
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">{authUser?.role === 'businessAdvisor' ? 'BA Settings' : 'Admin Settings'}</h1>
         <p className="mt-1 text-sm text-slate-500">Manage your account details, login email, and password.</p>
       </div>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-900">Profile & Email</h2>
         <form onSubmit={saveProfile} className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field
@@ -140,7 +140,7 @@ export default function AdminSettings() {
             <button
               type="submit"
               disabled={profileSaving}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-70"
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-70 sm:w-auto"
             >
               {profileSaving ? 'Saving...' : 'Save Profile'}
             </button>
@@ -148,7 +148,7 @@ export default function AdminSettings() {
         </form>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-900">Change Password</h2>
         <form onSubmit={savePassword} className="mt-4 grid gap-4 sm:grid-cols-2">
           <Field
@@ -177,7 +177,7 @@ export default function AdminSettings() {
             <button
               type="submit"
               disabled={passwordSaving}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70"
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-70 sm:w-auto"
             >
               {passwordSaving ? 'Updating...' : 'Update Password'}
             </button>

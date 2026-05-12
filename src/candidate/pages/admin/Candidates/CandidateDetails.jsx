@@ -184,25 +184,25 @@ export default function CandidateDetails() {
   if (!candidate) return <p className="text-sm text-rose-600">Candidate not found.</p>
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <button type="button" onClick={() => navigate('/candidate/admin/cms/candidates')} className="text-sm font-semibold text-sky-600 hover:text-sky-700">
             {'<- Candidates'}
           </button>
-          <h1 className="mt-2 text-2xl font-bold text-slate-950">{candidate.fullName}</h1>
+          <h1 className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{candidate.fullName}</h1>
           <p className="text-sm text-slate-500">Candidate Management System</p>
         </div>
         <button
           type="button"
           onClick={() => navigate(`/candidate/admin/cms/candidates/${id}/edit`)}
-          className="inline-flex min-h-10 items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+          className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
         >
           Edit Candidate
         </button>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         {[
           ['info', 'Candidate Info'],
           ['interviews', 'Interviews'],
@@ -220,7 +220,7 @@ export default function CandidateDetails() {
       </div>
 
       {tab === 'info' ? (
-        <section className="space-y-5 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <section className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:space-y-5 sm:p-5">
           <div className="grid gap-4 md:grid-cols-2">
             <Info label="Full Name" value={candidate.fullName} />
             <Info label="Mobile Number" value={candidate.mobileNumber} />
@@ -267,7 +267,7 @@ export default function CandidateDetails() {
       ) : null}
 
       {tab === 'interviews' ? (
-        <section className="space-y-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <section className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
           <form onSubmit={submitInterview} className="grid gap-3 md:grid-cols-5">
             <input
               value={interviewForm.companyName}
@@ -376,7 +376,7 @@ export default function CandidateDetails() {
       ) : null}
 
       {tab === 'remarks' ? (
-        <section className="space-y-4 rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+        <section className="space-y-4 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
           <div>
             <p className="text-sm font-semibold text-slate-700">Post-Placement Process Checklist</p>
             <p className="mt-1 text-sm text-slate-500">

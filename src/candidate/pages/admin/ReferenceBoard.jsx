@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { DragDropContext, Draggable, Droppable } from '@hello-pangea/dnd'
 import { format, formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
+import { useSelector } from 'react-redux'
 import {
   ArrowDown,
   ArrowUp,
@@ -15,7 +16,7 @@ import {
   X
 } from 'lucide-react'
 import api, { assetUrl } from '../../api/axios'
-import socket from '../../socket'
+import socket, { connectSocket } from '../../socket'
 import StatusBadge from '../../components/StatusBadge'
 import Skeleton from '../../components/Skeleton'
 import { ConfirmDialog } from '../../components/ActionDialogs'
@@ -170,6 +171,7 @@ const buildReferenceSearchDigits = (reference) => {
 }
 
 export default function ReferenceBoard() {
+  const token = useSelector((state) => state.auth.token)
   const [students, setStudents] = useState([])
   const [companies, setCompanies] = useState([])
   const [bas, setBas] = useState([])
@@ -217,6 +219,10 @@ export default function ReferenceBoard() {
   }, [])
 
   useEffect(() => {
+    if (token) {
+      connectSocket(token)
+    }
+
     const handleNewStudent = (student) => {
       setStudents((current) => [student, ...current.filter((item) => item._id !== student._id)])
       setNewCardIds((current) => [...current, `student-${student._id}`])
@@ -258,7 +264,7 @@ export default function ReferenceBoard() {
       socket.off('placement_paid', refresh)
       socket.off('placement_deleted', refresh)
     }
-  }, [])
+  }, [token])
 
   useEffect(() => {
     if (!newCardIds.length) return undefined
@@ -630,7 +636,7 @@ export default function ReferenceBoard() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Reference Board</h1>
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Reference Board</h1>
         <p className="mt-1 text-sm text-slate-500">
           Track all candidate and company references in real-time, then create placements directly from candidate cards.
         </p>
@@ -809,10 +815,10 @@ export default function ReferenceBoard() {
       </DragDropContext>
 
       {activeRef && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setActiveRef(null)} />
-          <div className="relative flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
-            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-sm">
+          <div className="relative flex h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
+            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-sm sm:px-6 sm:py-4">
               <div className="min-w-0">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -834,7 +840,7 @@ export default function ReferenceBoard() {
                     <X className="h-5 w-5" />
                   </button>
                 </div>
-                <h2 className="truncate text-2xl font-bold text-slate-900">{referenceLabel(activeRef)}</h2>
+                <h2 className="truncate text-xl font-bold text-slate-900 sm:text-2xl">{referenceLabel(activeRef)}</h2>
                 <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                   <span>By</span>
                   <span className="rounded bg-indigo-50 px-2 py-0.5 font-semibold text-indigo-700">
@@ -848,7 +854,7 @@ export default function ReferenceBoard() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-6 py-5"> 
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"> 
               <section className="rounded-xl border border-slate-200 p-4">
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <h3 className="text-sm font-bold uppercase text-slate-500">Reference Details</h3>

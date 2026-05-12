@@ -329,9 +329,9 @@ export default function CommissionPanel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Advisor Earnings Management</h1>
+        <h1 className="text-xl font-bold text-slate-900 sm:text-2xl">Advisor Earnings Management</h1>
         <p className="mt-1 text-sm text-slate-500">Manage BA-wise earnings, placement edits, and payout status.</p>
       </div>
 
@@ -657,12 +657,12 @@ export default function CommissionPanel() {
 
 function StatCard({ label, value }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-500">{label}</p>
         <IndianRupee className="h-5 w-5 text-indigo-500" />
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
     </div>
   )
 }

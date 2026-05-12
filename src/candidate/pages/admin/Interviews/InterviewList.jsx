@@ -25,11 +25,11 @@ const visibleInterviews = (rows) =>
   (Array.isArray(rows) ? rows : []).filter((row) => {
     const hasContent = Boolean(
       String(row?.companyName || '').trim() ||
-        String(row?.referencePerson || '').trim() ||
+        String(row?.referencePerson || row?.reference || '').trim() ||
         String(row?.remark || '').trim() ||
-        String(row?.date || '').trim()
+        String(row?.date || row?.interviewDate || '').trim()
     )
-    const status = row?.status || 'Pending'
+    const status = row?.status || row?.result || 'Pending'
     return hasContent || status !== 'Pending'
   })
 
@@ -51,7 +51,7 @@ export default function InterviewList() {
               const { data: interviewsRaw } = await api.get(`/cms/candidates/${candidate._id}/interviews`)
               const interviews = visibleInterviews(interviewsRaw)
               const interviewDates = interviews
-                .map((row) => String(row?.date || '').slice(0, 10))
+                .map((row) => String(row?.date || row?.interviewDate || '').slice(0, 10))
                 .filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(value))
               return {
                 id: candidate._id,
@@ -117,31 +117,31 @@ export default function InterviewList() {
   }, [items])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">Interviews</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Interviews</h1>
         <p className="mt-1 text-sm text-slate-500">Track and manage candidate interviews</p>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-2 inline-flex rounded-full bg-indigo-50 p-2 text-indigo-600"><Users className="h-4 w-4" /></div>
-          <p className="text-xs text-slate-500">Total Candidates</p><p className="text-3xl font-bold text-slate-900">{stats.totalCandidates}</p>
+          <p className="text-xs text-slate-500">Total Candidates</p><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{stats.totalCandidates}</p>
           <p className="mt-1 text-xs text-emerald-600">↑ 12.5% from last month</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-2 inline-flex rounded-full bg-sky-50 p-2 text-sky-600"><CalendarDays className="h-4 w-4" /></div>
-          <p className="text-xs text-slate-500">Total Interviews</p><p className="text-3xl font-bold text-slate-900">{stats.totalInterviews}</p>
+          <p className="text-xs text-slate-500">Total Interviews</p><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{stats.totalInterviews}</p>
           <p className="mt-1 text-xs text-emerald-600">↑ 8.4% from last month</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-2 inline-flex rounded-full bg-emerald-50 p-2 text-emerald-600"><CheckCircle2 className="h-4 w-4" /></div>
-          <p className="text-xs text-slate-500">Completed Interviews</p><p className="text-3xl font-bold text-slate-900">{stats.completedInterviews}</p>
+          <p className="text-xs text-slate-500">Completed Interviews</p><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{stats.completedInterviews}</p>
           <p className="mt-1 text-xs text-emerald-600">↑ 15.7% from last month</p>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-2 inline-flex rounded-full bg-amber-50 p-2 text-amber-600"><Clock3 className="h-4 w-4" /></div>
-          <p className="text-xs text-slate-500">Today&apos;s Interviews</p><p className="text-3xl font-bold text-slate-900">{stats.todaysInterviews}</p>
+          <p className="text-xs text-slate-500">Today&apos;s Interviews</p><p className="text-2xl font-bold text-slate-900 sm:text-3xl">{stats.todaysInterviews}</p>
           <p className="mt-1 text-xs font-medium text-indigo-600">View today&apos;s schedule</p>
         </div>
       </div>
@@ -171,11 +171,11 @@ export default function InterviewList() {
               className="w-full rounded-lg border border-slate-300 py-2 pl-9 pr-3 outline-none focus:border-sky-500 focus:ring-2 focus:ring-cyan-100"
             />
           </div>
-          <button type="button" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-600 hover:bg-indigo-50">
+          <button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-600 hover:bg-indigo-50 lg:w-auto">
             <Filter className="h-4 w-4" />
             Filter
           </button>
-          <button type="button" className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700">
+          <button type="button" className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 lg:w-auto">
             <Download className="h-4 w-4" />
             Export
           </button>
@@ -236,7 +236,7 @@ export default function InterviewList() {
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between border-t border-slate-100 px-5 py-3 text-xs text-slate-500">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-3 text-xs text-slate-500 sm:px-5">
           <p>Showing 1 to {Math.min(rows.length, 5)} of {rows.length} results</p>
           <div className="inline-flex items-center gap-2">
             <button type="button" className="h-7 w-7 rounded border border-slate-200 text-slate-400">{'<'}</button>

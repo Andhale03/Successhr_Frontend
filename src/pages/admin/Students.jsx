@@ -502,7 +502,7 @@ const [deletePrompt, setDeletePrompt] = useState({
   if (loading) return <Skeleton rows={9} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <Header
         title="Students"
         subtitle="Search, filter, view, edit, export, and delete student references."
@@ -756,7 +756,7 @@ function Header({ title, subtitle, onExport }) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">
           {title}
         </h1>
 
@@ -768,7 +768,7 @@ function Header({ title, subtitle, onExport }) {
       <button
         type="button"
         onClick={onExport}
-        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600"
+        className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-4 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto"
       >
         <Download className="h-4 w-4" />
         Export CSV

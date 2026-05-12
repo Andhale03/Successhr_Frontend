@@ -267,16 +267,16 @@ export default function BusinessAdvisors() {
   if (loading) return <Skeleton rows={9} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-950">Business Advisors</h1>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Business Advisors</h1>
           <p className="mt-1 text-sm text-slate-500">Register, approve, edit, upload documents, and remove BA accounts.</p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Register Business Advisor
@@ -380,18 +380,18 @@ export default function BusinessAdvisors() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
           <button
             type="button"
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={closeModal}
             aria-label="Close modal"
           />
-          <form onSubmit={saveBA} className="relative flex h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
-            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+          <form onSubmit={saveBA} className="relative flex h-[calc(100dvh-1rem)] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
+            <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-slate-950">
+                  <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">
                     {modalMode === 'create' ? 'Register Business Advisor' : 'Edit Business Advisor'}
                   </h2>
                   <p className="mt-2 text-sm text-slate-500">Fill account, profile, documents, bank details, and upload files.</p>
@@ -401,8 +401,8 @@ export default function BusinessAdvisors() {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-y-auto px-6 py-5">
-              <div className="space-y-6">
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+              <div className="space-y-4 sm:space-y-6">
                 <FormSection title="Account Details">
                   <ModalField label="Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
                   <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
@@ -481,7 +481,7 @@ export default function BusinessAdvisors() {
               </div>
             </div>
 
-            <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
+            <div className="border-t border-slate-200 bg-slate-50 px-4 py-3 sm:px-6 sm:py-4">
               <button
                 type="submit"
                 disabled={saving}
@@ -605,18 +605,18 @@ function ProfileDrawer({ profile, onClose }) {
   const sharePath = advisorCode ? `/apply/${advisorCode}` : '-'
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <button
         type="button"
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-label="Close profile"
       />
-      <aside className="relative flex h-[95vh] w-full max-w-4xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl animate-in">
-        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-5 backdrop-blur-sm">
+      <aside className="relative flex h-[calc(100dvh-1rem)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl animate-in sm:h-[95vh] sm:rounded-3xl">
+        <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-6 sm:py-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-slate-950">{profile.userId?.name || profile.fullName}</h2>
+              <h2 className="text-xl font-bold text-slate-950 sm:text-2xl">{profile.userId?.name || profile.fullName}</h2>
               <p className="mt-2 text-sm text-slate-500">{profile.userId?.email || profile.email}</p>
             </div>
             <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100" aria-label="Close">
@@ -625,7 +625,7 @@ function ProfileDrawer({ profile, onClose }) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
+        <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:space-y-6 sm:px-6 sm:py-5">
           <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
             <InfoGrid
               items={[

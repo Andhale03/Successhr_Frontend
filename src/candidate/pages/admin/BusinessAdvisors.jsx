@@ -267,16 +267,16 @@ export default function BusinessAdvisors() {
   if (loading) return <Skeleton rows={9} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-950">Business Advisors</h1>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Business Advisors</h1>
           <p className="mt-1 text-sm text-slate-500">Register, approve, edit, upload documents, and remove BA accounts.</p>
         </div>
         <button
           type="button"
           onClick={openCreate}
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700"
+          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-sky-600 px-4 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Register Business Advisor
@@ -380,8 +380,8 @@ export default function BusinessAdvisors() {
       </div>
 
       {modalMode && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-4">
-          <form onSubmit={saveBA} className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-5 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 px-2 py-3 sm:px-4">
+          <form onSubmit={saveBA} className="max-h-[calc(100dvh-1.5rem)] w-full max-w-5xl overflow-y-auto rounded-xl bg-white p-4 shadow-2xl sm:p-5">
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-950">
@@ -394,7 +394,7 @@ export default function BusinessAdvisors() {
               </button>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <FormSection title="Account Details">
                 <ModalField label="Name" required value={form.name} onChange={(value) => updateForm('name', value)} />
                 <ModalField label="Email" required type="email" value={form.email} onChange={(value) => updateForm('email', value)} />
@@ -597,9 +597,9 @@ function ProfileDrawer({ profile, onClose }) {
     <div className="fixed inset-0 z-50">
       <button className="absolute inset-0 bg-slate-950/40" onClick={onClose} aria-label="Close profile" />
       <aside className="absolute right-0 top-0 h-full w-full max-w-xl overflow-y-auto bg-white shadow-2xl">
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-5 sm:py-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-950">{profile.userId?.name || profile.fullName}</h2>
+            <h2 className="text-lg font-bold text-slate-950 sm:text-xl">{profile.userId?.name || profile.fullName}</h2>
             <p className="text-sm text-slate-500">{profile.userId?.email || profile.email}</p>
           </div>
           <button type="button" onClick={onClose} className="inline-flex h-10 w-10 items-center justify-center rounded-lg hover:bg-slate-100" aria-label="Close">
@@ -607,7 +607,7 @@ function ProfileDrawer({ profile, onClose }) {
           </button>
         </div>
 
-        <div className="space-y-6 px-5 py-5">
+        <div className="space-y-4 px-4 py-4 sm:space-y-6 sm:px-5 sm:py-5">
           <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4">
             <InfoGrid
               items={[

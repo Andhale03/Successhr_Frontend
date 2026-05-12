@@ -37,11 +37,13 @@ export default function Topbar({ onMenuClick }) {
   const settingsPath = user?.role === 'businessAdvisor' ? '/ba/settings' : '/candidate/admin/settings'
 
   return (
-    <div className="h-14 bg-white border-b flex items-center px-4 shadow-sm">
+    <div className="sticky top-0 z-30 flex h-14 min-w-0 items-center border-b bg-white px-3 shadow-sm sm:px-4">
 
       {/* MOBILE MENU */}
       <button
+        type="button"
         onClick={onMenuClick}
+        aria-label="Open menu"
         className="lg:hidden mr-2 p-2 rounded-lg hover:bg-gray-100"
       >
         <Menu size={20} />
@@ -65,7 +67,7 @@ export default function Topbar({ onMenuClick }) {
 
         {/* DROPDOWN */}
         {open && (
-          <div className="absolute right-0 mt-3 w-64 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+          <div className="absolute right-0 z-50 mt-3 w-[calc(100vw-1.5rem)] max-w-64 overflow-hidden rounded-xl border border-gray-100 bg-white shadow-xl">
 
             {/* USER INFO */}
             <div className="px-4 py-3 bg-gray-50 border-b">

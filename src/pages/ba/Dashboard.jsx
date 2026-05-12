@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, Building2, BriefcaseBusiness, IndianRupee, Users } from 'lucide-react'
+import { AlertTriangle, Building2, BriefcaseBusiness, IndianRupee, UserRoundPlus, Users } from 'lucide-react'
 import { format } from 'date-fns'
 import { useSelector } from 'react-redux'
 import api from '../../api/axios'
@@ -79,10 +79,28 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-950">Hello, {profile?.fullName || 'Business Advisor'}</h1>
-        <p className="mt-1 text-sm text-slate-500">Snapshot of your submissions, placements, and earnings.</p>
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Hello, {profile?.fullName || 'Business Advisor'}</h1>
+          <p className="mt-1 text-sm text-slate-500">Snapshot of your submissions, placements, and earnings.</p>
+        </div>
+        <div className="grid gap-2 sm:grid-cols-2 lg:flex lg:justify-end">
+          <Link
+            to="/ba/students/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
+            <UserRoundPlus className="h-4 w-4" />
+            Add Candidate
+          </Link>
+          <Link
+            to="/ba/companies/new"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            <Building2 className="h-4 w-4" />
+            Add Company
+          </Link>
+        </div>
       </div>
 
       {!profile?.isProfileComplete && (
@@ -96,7 +114,7 @@ export default function Dashboard() {
           </div>
           <Link
             to="/ba/profile"
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-white hover:bg-amber-600"
+            className="inline-flex min-h-10 w-full items-center justify-center rounded-lg bg-amber-500 px-4 text-sm font-semibold text-white hover:bg-amber-600 sm:w-auto"
           >
             Go to Profile
           </Link>
@@ -159,12 +177,12 @@ export default function Dashboard() {
 
 function StatCard({ label, value, icon: Icon }) {
   return (
-    <div className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+    <div className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-slate-500">{label}</p>
         <Icon className="h-5 w-5 text-indigo-500" />
       </div>
-      <p className="mt-3 text-2xl font-bold text-slate-900">{value}</p>
+      <p className="mt-2 text-xl font-bold text-slate-900 sm:mt-3 sm:text-2xl">{value}</p>
     </div>
   )
 }

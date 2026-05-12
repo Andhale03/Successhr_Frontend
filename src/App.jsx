@@ -22,7 +22,6 @@ const BAEarnings = lazy(() => import('./pages/ba/Earnings'))
 const InterviewList = lazy(() => import('./pages/admin/Interviews/InterviewList'))
 const ApplyPage = lazy(() => import('./pages/public/ApplyPage'))
 const CmsCandidatesList = lazy(() => import('./candidate/pages/admin/Candidates/CandidatesList'))
-const CmsCandidateForm = lazy(() => import('./candidate/pages/admin/Candidates/CandidateForm'))
 const CmsAddCandidate = lazy(() => import('./candidate/pages/admin/Candidates/AddCandidate'))
 const CmsCandidateDetail = lazy(() => import('./candidate/pages/admin/Candidates/CandidateDetail'))
 const CmsCompaniesList = lazy(() => import('./candidate/pages/admin/Candidates/CompaniesList'))
@@ -135,7 +134,7 @@ export default function App() {
           element={
             <ProtectedRoute roles={['candidateAdmin']}>
               <AppShell role="candidateAdmin">
-                <CmsCandidateForm />
+                <CmsAddCandidate />
               </AppShell>
             </ProtectedRoute>
           }
@@ -358,7 +357,7 @@ export default function App() {
         <Route path="/candidate/admin/process" element={<Navigate to="/admin/process-panel" replace />} />
         <Route path="/candidate/admin/commission-process" element={<Navigate to="/admin/process-panel" replace />} />
         <Route path="/candidate/admin/candidates" element={<Navigate to="/admin/cms/candidates" replace />} />
-        <Route path="/candidate/admin/candidates/new" element={<Navigate to="/admin/cms/candidates/new" replace />} />
+        <Route path="/candidate/admin/candidates/new" element={<Navigate to="/admin/cms/candidates/add" replace />} />
         <Route path="/candidate/admin/candidates/:id" element={<Navigate to="/admin/cms/candidates" replace />} />
         <Route path="/candidate/admin/companies/new" element={<Navigate to="/admin/cms/companies/new" replace />} />
 

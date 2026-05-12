@@ -177,9 +177,9 @@ export default function Dashboard() {
   if (loading) return <Skeleton rows={8} />
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">Dashboard</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">Dashboard</h1>
         <p className="mt-1 text-sm text-slate-500">Overview of advisors and incoming references.</p>
       </div>
 
@@ -189,13 +189,13 @@ export default function Dashboard() {
             key={label}
             type="button"
             onClick={onClick}
-            className="rounded-xl bg-white p-5 text-left shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:ring-slate-300"
+            className="rounded-xl bg-white p-4 text-left shadow-sm ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:ring-slate-300 sm:p-5"
           >
             <div className="flex items-center justify-between">
               <p className="text-sm font-semibold text-slate-500">{label}</p>
               <Icon className={`h-5 w-5 ${color}`} />
             </div>
-            <p className="mt-3 text-3xl font-bold text-slate-950">{value}</p>
+            <p className="mt-2 text-2xl font-bold text-slate-950 sm:mt-3 sm:text-3xl">{value}</p>
           </button>
         ))}
       </div>

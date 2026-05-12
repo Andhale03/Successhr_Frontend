@@ -125,17 +125,17 @@ export default function CandidateForm() {
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <button type="button" onClick={() => navigate('/admin/cms/candidates')} className="text-sm font-semibold text-sky-600 hover:text-sky-700">
             {'<- Candidates'}
           </button>
-          <h1 className="mt-2 text-2xl font-bold text-slate-950">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h1>
+          <h1 className="mt-2 text-xl font-bold text-slate-950 sm:text-2xl">{isEdit ? 'Edit Candidate' : 'Add Candidate'}</h1>
         </div>
       </div>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <div className="grid gap-4 md:grid-cols-2">
           {[
             ['fullName', 'Full Name *'],
@@ -209,7 +209,7 @@ export default function CandidateForm() {
       <button
         type="submit"
         disabled={saving}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
       >
         {saving ? 'Saving...' : isEdit ? 'Update Candidate' : 'Create Candidate'}
       </button>

@@ -209,26 +209,26 @@ export default function Profile() {
   }
 
   return (
-    <form onSubmit={saveProfile} className="space-y-6">
-      <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-5">
+    <form onSubmit={saveProfile} className="space-y-4 sm:space-y-6">
+      <section className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Your Advisor Code</h2>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
           <p className="font-mono text-lg font-bold text-slate-900">{advisorCode || 'Not assigned yet'}</p>
-          <button type="button" onClick={() => copyText(advisorCode, 'Code copied!')} className="rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white">Copy code</button>
+          <button type="button" onClick={() => copyText(advisorCode, 'Code copied!')} className="w-full rounded-lg bg-sky-600 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy code</button>
         </div>
         <p className="mt-3 text-sm font-medium text-slate-700">Public candidate website link:</p>
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 ring-1 ring-cyan-200">
           <p className="break-all text-sm text-slate-700">{shareLink}</p>
-          <button type="button" onClick={() => copyText(shareLink, 'Link copied!')} className="rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white">Copy link</button>
+          <button type="button" onClick={() => copyText(shareLink, 'Link copied!')} className="w-full rounded-lg bg-slate-800 px-3 py-2 text-sm font-semibold text-white sm:w-auto">Copy link</button>
         </div>
       </section>
 
       <div>
-        <h1 className="text-2xl font-bold text-slate-950">My Profile</h1>
+        <h1 className="text-xl font-bold text-slate-950 sm:text-2xl">My Profile</h1>
         <p className="mt-1 text-sm text-slate-500">Complete your profile, documents, and payout bank details.</p>
       </div>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {completion.map(([label, done]) => (
             <div key={label} className="flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-sm font-semibold">
@@ -239,7 +239,7 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Personal Info</h2>
         <div className="mt-5 grid gap-5 lg:grid-cols-[180px_1fr]">
           <div>
@@ -250,7 +250,7 @@ export default function Profile() {
                 <div className="flex h-full items-center justify-center text-sm text-slate-400">No photo</div>
               )}
             </div>
-            <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-sm font-semibold text-white hover:bg-sky-700">
+            <label className="inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-sky-600 px-3 text-sm font-semibold text-white hover:bg-sky-700 sm:w-auto">
               <UploadCloud className="h-4 w-4" />
               {uploading === 'profilePhoto' ? 'Uploading...' : 'Upload'}
               <input type="file" className="sr-only" accept="image/*" onChange={(event) => uploadFile('profilePhoto', event.target.files?.[0])} />
@@ -275,7 +275,7 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Documents</h2>
         <div className="mt-5 grid gap-4 lg:grid-cols-2">
           {Object.entries(docLabels).map(([docType, label]) => (
@@ -296,7 +296,7 @@ export default function Profile() {
                 <Field label="PAN Number" value={profile.documents.panCard.number || ''} onChange={(value) => updateDoc('panCard', 'number', value.slice(0, 10))} />
               )}
 
-              <label className="mt-4 inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600">
+              <label className="mt-4 inline-flex min-h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-lg bg-orange-500 px-3 text-sm font-semibold text-white hover:bg-orange-600 sm:w-auto">
                 <UploadCloud className="h-4 w-4" />
                 {uploading === docType ? 'Uploading...' : profile.documents[docType]?.fileUrl ? 'Replace File' : 'Upload File'}
                 <input
@@ -311,7 +311,7 @@ export default function Profile() {
         </div>
       </section>
 
-      <section className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <section className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
         <h2 className="text-lg font-bold text-slate-950">Bank Details</h2>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <Field label="Account Holder Name" required value={profile.bankDetails.accountHolderName} onChange={(value) => updateBank('accountHolderName', value)} />
@@ -356,7 +356,7 @@ export default function Profile() {
       <button
         type="submit"
         disabled={saving}
-        className="inline-flex min-h-11 items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70"
+        className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-sky-600 px-5 text-sm font-semibold text-white hover:bg-sky-700 disabled:opacity-70 sm:w-auto"
       >
         {saving ? 'Saving...' : 'Save Profile'}
       </button>
